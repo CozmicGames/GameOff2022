@@ -7,21 +7,21 @@ import com.cozmicgames.utils.injector
 import com.cozmicgames.utils.maths.OrthographicCamera
 import engine.audio.SoundManager
 import engine.graphics.*
+import engine.graphics.ui.GUI
 import engine.input.ControlManager
 import engine.physics.Physics
 import engine.utils.Rumble
-import game.InitialGameState
+import game.states.LoadingGameState
 
 object Game : Application {
     val sounds by Kore.context.injector(true) { SoundManager() }
     val textures by Kore.context.injector(true) { TextureManager() }
+    val fonts by Kore.context.injector(true) { FontManager() }
     val shaders by Kore.context.injector(true) { ShaderManager() }
 
     val controls by Kore.context.injector(true) { ControlManager() }
     val graphics2d by Kore.context.injector(true) { Graphics2D() }
     val renderer by Kore.context.injector(true) { RenderManager() }
-
-
 
     val physics by Kore.context.injector(true) { Physics() }
     val rumble by Kore.context.injector(true) { Rumble() }
@@ -33,7 +33,7 @@ object Game : Application {
         camera.position.setZero()
         camera.update()
 
-        currentState = InitialGameState()
+        currentState = LoadingGameState()
         currentState.onCreate()
     }
 

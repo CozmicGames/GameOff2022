@@ -1,61 +1,59 @@
 package engine.graphics
 
 import com.cozmicgames.Kore
+import com.cozmicgames.audio
 import com.cozmicgames.files.FileHandle
+import com.cozmicgames.graphics
+import com.cozmicgames.graphics.Font
 import com.cozmicgames.log
 import com.cozmicgames.utils.Disposable
-import engine.graphics.shaders.DefaultShader
 import engine.graphics.shaders.Shader
 import kotlin.reflect.KProperty
 
-class ShaderManager : Disposable {
+class FontManager : Disposable {
     inner class Getter(val file: FileHandle) {
         operator fun getValue(thisRef: Any, property: KProperty<*>) = getOrAdd(file)
     }
 
-    private val shaders = hashMapOf<String, Shader>()
-
-    init {
-        add("default", DefaultShader)
-    }
+    private val fonts = hashMapOf<String, Font>()
 
     fun add(file: FileHandle) {
         if (!file.exists) {
-            Kore.log.error(this::class, "Shader file not found: $file")
+            Kore.log.error(this::class, "Font file not found: $file")
             return
         }
 
-        val shader = try {
-            Shader(file)
-        } catch (e: Exception) {
-            Kore.log.error(this::class, "Failed to load shader file: $file")
+        val font = Kore.graphics.readFont(file)
+
+        if (font == null) {
+            Kore.log.error(this::class, "Failed to load font file: $file")
             return
         }
 
-        add(file.fullPath, shader)
+        add(file.fullPath, font)
     }
 
-    fun add(name: String, shader: Shader) {
-        shaders[name] = shader
+    fun add(name: String, font: Font) {
+        fonts[name] = font
     }
 
     operator fun contains(file: FileHandle) = contains(file.fullPath)
 
-    operator fun contains(name: String) = name in shaders
+    operator fun contains(name: String) = name in fonts
 
     fun remove(file: FileHandle) = remove(file.fullPath)
 
     fun remove(name: String) {
-        shaders.remove(name)
+        fonts.remove(name)
     }
 
     operator fun get(file: FileHandle) = get(file.fullPath)
 
-    operator fun get(name: String): Shader? {
-        return shaders[name]
+    operator fun get(name: String): Font? {
+        return fonts[name]
     }
 
-    fun getOrAdd(file: FileHandle): Shader {
+    fun getOrAdd(file: FileHandle): Font {
         if (file !in this)
             add(file)
 
@@ -65,8 +63,8 @@ class ShaderManager : Disposable {
     operator fun invoke(file: FileHandle) = Getter(file)
 
     override fun dispose() {
-        shaders.forEach { (_, shader) ->
-            (shader as? Disposable)?.dispose()
+        fonts.forEach { (_, font) ->
+            (font as? Disposable)?.dispose()
         }
     }
 }
