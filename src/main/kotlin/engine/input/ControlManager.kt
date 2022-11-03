@@ -10,6 +10,7 @@ class ControlManager : Updateable {
 
     fun add(name: String): ControlAction {
         val action = ControlAction(name)
+        actionsInternal += action
         return action
     }
 
