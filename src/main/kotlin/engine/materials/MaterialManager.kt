@@ -15,7 +15,7 @@ class MaterialManager {
 
     fun add(file: FileHandle) {
         if (!file.exists) {
-            Kore.log.error(this::class, "Sound file not found: $file")
+            Kore.log.error(this::class, "Material file not found: $file")
             return
         }
 
