@@ -7,3 +7,4 @@ gradlew
 /build
 config.txt
 log.txt
+/out
