@@ -122,15 +122,18 @@ class GameObject(val scene: Scene, val uuid: UUID) : Iterable<Component>, Dispos
 
         properties.getString("parent")?.let { parentUUID = UUID(it) }
         properties.getBoolean("active")?.let { isActive = it }
+
         properties.getPropertiesArray("components")?.let {
             for (componentProperties in it) {
                 val componentTypeName = componentProperties.getString("type") ?: continue
                 val componentType = Reflection.getClassByName(componentTypeName) ?: continue
                 val component = Reflection.createInstance(componentType) as? Component ?: continue
 
+                component.gameObject = this
+                components[componentType] = component
+
                 component.read(componentProperties)
 
-                components[componentType] = component
                 scene.onAddComponent(component)
             }
         }

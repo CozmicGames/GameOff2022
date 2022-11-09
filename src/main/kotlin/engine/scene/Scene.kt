@@ -6,8 +6,40 @@ import com.cozmicgames.utils.UUID
 import com.cozmicgames.utils.Updateable
 import kotlin.reflect.KClass
 
-class Scene : Iterable<GameObject>, Disposable {
-    private val gameObjects = arrayListOf<GameObject>()
+class Scene : Disposable {
+    val activeGameObjects = object : Iterable<GameObject> {
+        override fun iterator() = object : Iterator<GameObject> {
+            private val gameObjects = gameObjectsInternal
+            private var index = 0
+            private var next: GameObject? = findNext()
+
+            private fun findNext(): GameObject? {
+                while (index < gameObjects.size) {
+                    val gameObject = gameObjects[index]
+                    index++
+
+                    if (gameObject.isActive)
+                        return gameObject
+                }
+
+                return null
+            }
+
+            override fun hasNext() = next != null
+
+            override fun next(): GameObject {
+                val value = requireNotNull(next)
+                next = findNext()
+                return value
+            }
+        }
+    }
+
+    val gameObjects = object : Iterable<GameObject> {
+        override fun iterator() = gameObjectsInternal.iterator()
+    }
+
+    private val gameObjectsInternal = arrayListOf<GameObject>()
     private val processors = arrayListOf<SceneProcessor>()
 
     private val onAddedComponents = arrayListOf<Component>()
@@ -36,20 +68,20 @@ class Scene : Iterable<GameObject>, Disposable {
         }
     }
 
-    fun addGameObject(uuid: UUID = UUID.random(), block: GameObject.() -> Unit = {}): GameObject {
+    fun addGameObject(uuid: UUID = UUID.randomUUID(), block: GameObject.() -> Unit = {}): GameObject {
         val gameObject = GameObject(this, uuid)
         block(gameObject)
-        gameObjects.add(gameObject)
+        gameObjectsInternal.add(gameObject)
         return gameObject
     }
 
     fun removeGameObject(gameObject: GameObject) {
-        if (gameObjects.remove(gameObject))
+        if (gameObjectsInternal.remove(gameObject))
             gameObject.dispose()
     }
 
     fun getGameObject(uuid: UUID): GameObject? {
-        return gameObjects.find { it.uuid == uuid }
+        return gameObjectsInternal.find { it.uuid == uuid }
     }
 
     fun getOrAddGameObject(uuid: UUID): GameObject {
@@ -79,10 +111,13 @@ class Scene : Iterable<GameObject>, Disposable {
         return processors.find { type.isInstance(it) } as? T?
     }
 
-    fun clear() {
-        gameObjects.forEach {
+    fun clearGameObjects() {
+        gameObjectsInternal.forEach {
             it.dispose()
         }
+    }
+
+    fun clearProcessors() {
         processors.clear()
     }
 
@@ -115,7 +150,7 @@ class Scene : Iterable<GameObject>, Disposable {
             it.onRemoved()
         }
 
-        forEach { gameObject ->
+        activeGameObjects.forEach { gameObject ->
             gameObject.forEach {
                 if (it is Updateable)
                     it.update(delta)
@@ -128,35 +163,7 @@ class Scene : Iterable<GameObject>, Disposable {
         }
     }
 
-    override fun iterator() = object : Iterator<GameObject> {
-        private val gameObjects = this@Scene.gameObjects
-        private var index = 0
-        private var next: GameObject? = findNext()
-
-        private fun findNext(): GameObject? {
-            while (index < gameObjects.size) {
-                val gameObject = gameObjects[index]
-                index++
-
-                if (gameObject.isActive)
-                    return gameObject
-            }
-
-            return null
-        }
-
-        override fun hasNext() = next != null
-
-        override fun next(): GameObject {
-            val value = requireNotNull(next)
-            next = findNext()
-            return value
-        }
-    }
-
     fun read(properties: Properties) {
-        clear()
-
         val gameObjectsProperties = properties.getPropertiesArray("gameObjects") ?: return
 
         for (gameObjectProperties in gameObjectsProperties) {
@@ -170,7 +177,7 @@ class Scene : Iterable<GameObject>, Disposable {
     fun write(properties: Properties) {
         val gameObjectsProperties = arrayListOf<Properties>()
 
-        gameObjects.forEach {
+        gameObjectsInternal.forEach {
             val gameObjectProperties = Properties()
 
             gameObjectProperties.setString("uuid", it.uuid.toString())
@@ -183,15 +190,24 @@ class Scene : Iterable<GameObject>, Disposable {
     }
 
     override fun dispose() {
-        gameObjects.forEach {
+        gameObjectsInternal.forEach {
             it.dispose()
         }
-        gameObjects.clear()
+        clearGameObjects()
 
         processors.forEach {
             if (it is Disposable)
                 it.dispose()
         }
-        processors.clear()
+        clearProcessors()
+    }
+}
+
+inline fun <reified T : Component> Scene.findGameObjectsWithComponent(noinline block: (GameObject) -> Unit) = findGameObjectsWithComponent(T::class, block)
+
+fun <T : Component> Scene.findGameObjectsWithComponent(type: KClass<T>, block: (GameObject) -> Unit) {
+    gameObjects.forEach {
+        if (it.hasComponent(type))
+            block(it)
     }
 }

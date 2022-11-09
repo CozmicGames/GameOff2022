@@ -1,9 +1,5 @@
 package game
 
 object Constants {
-    val versionMajor = 0
-    val versionMinor = 0
-    val versionPostfix = "Pre-Alpha"
-
-    val versionString get() = "Version $versionMajor.$versionMinor - $versionPostfix"
+    const val TILE_SIZE = 32.0f
 }

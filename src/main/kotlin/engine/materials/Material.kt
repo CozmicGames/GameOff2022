@@ -3,15 +3,15 @@ package engine.materials
 import com.cozmicgames.utils.*
 
 class Material : Properties() {
-    var colorTexturePath by string { "" }
+    var colorTexturePath by string { "<missing>" }
     var shader by string { "default" }
-
-    var restitution by float { 0.0f }
-    var staticFriction by float { 0.5f }
-    var dynamicFriction by float { 0.3f }
-    var density by float { 1.0f }
-
     val color by color { it.set(Color.WHITE) }
+
+    fun set(material: Material) {
+        colorTexturePath = material.colorTexturePath
+        shader = material.shader
+        color.set(material.color)
+    }
 
     override fun equals(other: Any?): Boolean {
         if (other == null)
@@ -29,18 +29,6 @@ class Material : Properties() {
             return false
 
         if (shader != other.shader)
-            return false
-
-        if (restitution != other.restitution)
-            return false
-
-        if (staticFriction != other.staticFriction)
-            return false
-
-        if (dynamicFriction != other.dynamicFriction)
-            return false
-
-        if (density != other.density)
             return false
 
         if (color != other.color)

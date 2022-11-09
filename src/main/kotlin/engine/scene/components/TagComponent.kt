@@ -21,7 +21,7 @@ class TagComponent : Component() {
 }
 
 fun Scene.findGameObjectsByTag(vararg tags: String, block: (GameObject) -> Unit) {
-    outer@ for (gameObject in this) {
+    outer@ for (gameObject in gameObjects) {
         val tagComponent = gameObject.getComponent<TagComponent>() ?: continue
 
         for (tag in tags) {

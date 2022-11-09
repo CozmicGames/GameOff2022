@@ -6,21 +6,23 @@ import com.cozmicgames.input.GamepadButton
 import com.cozmicgames.input.InputListener
 import com.cozmicgames.input.Key
 import com.cozmicgames.input.MouseButton
+import com.cozmicgames.utils.Disposable
 import com.cozmicgames.utils.Properties
 import com.cozmicgames.utils.Reflection
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.sign
 import kotlin.reflect.KClass
 
-class ControlAction(var name: String) {
+class ControlAction(var name: String) : Disposable {
     var deadZone = 0.01f
     var rampUpSpeed = Float.MAX_VALUE
     var rampDownSpeed = Float.MAX_VALUE
     var receiveInputFromAllGamepads = true
     val gamepads = hashSetOf<Int>()
 
-    val state get() = abs(currentValueRaw) < deadZone
+    val state get() = abs(currentValueRaw) > deadZone
 
     var currentValue = 0.0f
         private set
@@ -41,12 +43,22 @@ class ControlAction(var name: String) {
         isTriggered = inputs.any { (_, input) -> input.isTriggered }
         currentValueRaw = inputs.maxOf { (_, input) -> input.currentValue }
 
-        if (currentValueRaw <= deadZone) {
-            currentValue -= rampDownSpeed * delta
-            currentValue = max(0.0f, currentValue)
+        if (currentValue < 0.0f) {
+            if (abs(currentValueRaw) <= deadZone) {
+                currentValue += rampDownSpeed * delta
+                currentValue = min(0.0f, currentValue)
+            } else {
+                currentValue -= rampUpSpeed * delta
+                currentValue = max(currentValueRaw, currentValue)
+            }
         } else {
-            currentValue += rampUpSpeed * delta
-            currentValue = min(currentValueRaw, currentValue)
+            if (abs(currentValueRaw) <= deadZone) {
+                currentValue -= rampDownSpeed * delta
+                currentValue = max(0.0f, currentValue)
+            } else {
+                currentValue += rampUpSpeed * delta
+                currentValue = min(currentValueRaw, currentValue)
+            }
         }
     }
 
@@ -160,6 +172,30 @@ class ControlAction(var name: String) {
         return MouseDeltaYControlInput::class in inputs
     }
 
+    fun setScrollX() {
+        inputs.getOrPut(MouseScrollXControlInput::class) { MouseScrollXControlInput() }
+    }
+
+    fun unsetScrollX() {
+        inputs.remove(MouseScrollXControlInput::class)
+    }
+
+    fun isScrollX(): Boolean {
+        return MouseScrollXControlInput::class in inputs
+    }
+
+    fun setScrollY() {
+        inputs.getOrPut(MouseScrollYControlInput::class) { MouseScrollYControlInput() }
+    }
+
+    fun unsetScrollY() {
+        inputs.remove(MouseScrollYControlInput::class)
+    }
+
+    fun isScrollY(): Boolean {
+        return MouseScrollYControlInput::class in inputs
+    }
+
     fun addGamepadButton(button: GamepadButton) {
         val input = inputs.getOrPut(GamepadButtonControlInput::class) { GamepadButtonControlInput() } as GamepadButtonControlInput
 
@@ -253,6 +289,12 @@ class ControlAction(var name: String) {
 
     fun isGamepadRightTrigger(): Boolean {
         return GamepadRightTriggerControlInput::class in inputs
+    }
+
+    override fun dispose() {
+        inputs.forEach { (_, input) ->
+            (input as? Disposable)?.dispose()
+        }
     }
 }
 

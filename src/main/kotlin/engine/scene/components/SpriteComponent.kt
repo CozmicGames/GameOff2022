@@ -12,6 +12,7 @@ class SpriteComponent : Component(), Updateable, Drawable {
     var isFlippedX = false
     var isFlippedY = false
     var layer = 0
+    var material: String? = null
 
     var anchorX = 0.5f
         set(value) {
@@ -79,6 +80,7 @@ class SpriteComponent : Component(), Updateable, Drawable {
         properties.getBoolean("isFlippedX")?.let { isFlippedX = it }
         properties.getBoolean("isFlippedY")?.let { isFlippedY = it }
         properties.getInt("layer")?.let { layer = it }
+        properties.getString("material")?.let { material = it }
         properties.getFloat("anchorX")?.let { anchorX = it }
         properties.getFloat("anchorY")?.let { anchorY = it }
     }
@@ -87,6 +89,7 @@ class SpriteComponent : Component(), Updateable, Drawable {
         properties.setBoolean("isFlippedX", isFlippedX)
         properties.setBoolean("isFlippedY", isFlippedY)
         properties.setInt("layer", layer)
+        material?.let { properties.setString("material", it) }
         properties.setFloat("anchorX", anchorX)
         properties.setFloat("anchorY", anchorY)
     }

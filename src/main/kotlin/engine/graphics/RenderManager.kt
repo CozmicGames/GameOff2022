@@ -2,18 +2,28 @@ package engine.graphics
 
 import com.cozmicgames.graphics.gpu.Texture2D
 import com.cozmicgames.utils.Disposable
-import com.cozmicgames.utils.collections.DynamicArray
 import com.cozmicgames.utils.collections.Pool
-import com.cozmicgames.utils.collections.getOrPut
 import com.cozmicgames.utils.maths.OrthographicCamera
 import engine.Game
 import engine.graphics.shaders.DefaultShader
-import engine.graphics.shaders.Shader
 import engine.materials.Material
 
 class RenderManager : Disposable {
-    private val renderLists = DynamicArray<MutableList<Renderable>>()
+    private class RenderList(val layer: Int) : Iterable<Renderable> {
+        private val renderables = arrayListOf<Renderable>()
 
+        override fun iterator() = renderables.iterator()
+
+        fun add(renderable: Renderable) {
+            renderables += renderable
+        }
+
+        fun clear() {
+            renderables.clear()
+        }
+    }
+
+    private val renderLists = arrayListOf<RenderList>()
     private val drawableRenderablePool = Pool(supplier = { DrawableRenderable() })
     private val directRenderablePool = Pool(supplier = { DirectRenderable() })
     private val renderables = arrayListOf<Renderable>()
@@ -50,13 +60,26 @@ class RenderManager : Disposable {
             if (!layerFilter(renderable.layer))
                 continue
 
-            val renderList = renderLists.getOrPut(renderable.layer) { arrayListOf() }
+            var renderList: RenderList? = null
+
+            for (list in renderLists)
+                if (list.layer == renderable.layer) {
+                    renderList = list
+                    break
+                }
+
+            if (renderList == null) {
+                renderList = RenderList(renderable.layer)
+                renderLists += renderList
+                renderLists.sortBy { it.layer }
+            }
+
             renderList.add(renderable)
         }
 
         Game.graphics2d.render(camera) { renderer ->
-            renderLists.forEach { renderList ->
-                for (renderable in renderList)
+            renderLists.forEach {
+                for (renderable in it)
                     when (renderable) {
                         is DrawableRenderable -> batchBuilder.submit(renderable.material, renderable.drawable, renderable.flipX, renderable.flipY)
                         is DirectRenderable -> {
@@ -70,7 +93,7 @@ class RenderManager : Disposable {
                         }
                     }
 
-                renderList.clear()
+                it.clear()
 
                 batchBuilder.flush { batch ->
                     renderer.drawBatch(batch)

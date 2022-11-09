@@ -3,6 +3,7 @@ package engine.input
 import com.cozmicgames.Kore
 import com.cozmicgames.input
 import com.cozmicgames.input.*
+import com.cozmicgames.utils.Disposable
 import com.cozmicgames.utils.Properties
 import com.cozmicgames.utils.extensions.enumValueOfOrNull
 
@@ -10,7 +11,7 @@ interface ControlInput {
     val isTriggered: Boolean
     val currentValue: Float
 
-    fun update(action: ControlAction)
+    fun update(action: ControlAction) {}
 
     fun read(properties: Properties) {}
     fun write(properties: Properties) {}
@@ -84,6 +85,7 @@ class MouseDeltaXControlInput : ControlInput {
         private set
 
     override fun update(action: ControlAction) {
+        isTriggered = Kore.input.deltaX != 0
         currentValue = Kore.input.deltaX.toFloat()
     }
 }
@@ -96,7 +98,82 @@ class MouseDeltaYControlInput : ControlInput {
         private set
 
     override fun update(action: ControlAction) {
+        isTriggered = Kore.input.deltaY != 0
         currentValue = Kore.input.deltaY.toFloat()
+    }
+}
+
+class MouseScrollXControlInput : ControlInput, InputListener, Disposable {
+    override var isTriggered = false
+        private set
+
+    override var currentValue = 0.0f
+        private set
+
+    private var currentScrollAmount = 0.0f
+    private var unsetIsTriggeredNextUpdate = false
+
+    init {
+        Kore.input.addListener(this)
+    }
+
+    override fun update(action: ControlAction) {
+        currentValue = currentScrollAmount
+        currentScrollAmount = 0.0f
+
+        if (isTriggered)
+            unsetIsTriggeredNextUpdate = true
+
+        if (unsetIsTriggeredNextUpdate) {
+            isTriggered = false
+            unsetIsTriggeredNextUpdate = false
+        }
+    }
+
+    override fun onScroll(x: Float, y: Float, time: Double) {
+        isTriggered = true
+        currentScrollAmount += x
+    }
+
+    override fun dispose() {
+        Kore.input.removeListener(this)
+    }
+}
+
+class MouseScrollYControlInput : ControlInput, InputListener, Disposable {
+    override var isTriggered = false
+        private set
+
+    override var currentValue = 0.0f
+        private set
+
+    private var currentScrollAmount = 0.0f
+    private var unsetIsTriggeredNextUpdate = false
+
+    init {
+        Kore.input.addListener(this)
+    }
+
+    override fun update(action: ControlAction) {
+        currentValue = currentScrollAmount
+        currentScrollAmount = 0.0f
+
+        if (isTriggered)
+            unsetIsTriggeredNextUpdate = true
+
+        if (unsetIsTriggeredNextUpdate) {
+            isTriggered = false
+            unsetIsTriggeredNextUpdate = false
+        }
+    }
+
+    override fun onScroll(x: Float, y: Float, time: Double) {
+        isTriggered = true
+        currentScrollAmount += y
+    }
+
+    override fun dispose() {
+        Kore.input.removeListener(this)
     }
 }
 

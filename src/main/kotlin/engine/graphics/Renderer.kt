@@ -5,6 +5,7 @@ import com.cozmicgames.graphics
 import com.cozmicgames.graphics.IndexDataType
 import com.cozmicgames.graphics.Primitive
 import com.cozmicgames.graphics.gpu.*
+import com.cozmicgames.log
 import com.cozmicgames.utils.Color
 import com.cozmicgames.utils.Disposable
 import com.cozmicgames.utils.collections.DynamicStack
@@ -15,7 +16,6 @@ import engine.Game
 import engine.graphics.font.GlyphLayout
 import engine.graphics.shaders.DefaultShader
 import engine.graphics.shaders.Shader
-import engine.materials.Material
 
 class Renderer(graphics: Graphics2D) : Disposable {
     val context = DrawContext()
@@ -220,18 +220,24 @@ class Renderer(graphics: Graphics2D) : Disposable {
         val material = batch.material
 
         if (material != null) {
-            val shader = Game.shaders[material.shader] ?: DefaultShader
-            withShader(shader) {
-                texture = Game.textures[material.colorTexturePath]?.texture ?: Game.graphics2d.missingTexture
-                shader.setMaterial(material)
-                context.draw(batch.context)
+            shader = Game.shaders[material.shader] ?: run {
+                Kore.log.error(this::class, "Couldn't find shader, using default shader: ${material.shader}")
+                DefaultShader
             }
+            texture = Game.textures[material.colorTexturePath]?.texture ?: run {
+                Kore.log.error(this::class, "Couldn't find texture, using missing texture: ${material.shader}")
+                Game.graphics2d.missingTexture
+            }
+            shader.setMaterial(material)
+            context.draw(batch.context)
         } else {
-            withShader(DefaultShader) {
-                texture = Game.graphics2d.missingTexture
-                context.draw(batch.context)
-            }
+            shader = DefaultShader
+            texture = Game.graphics2d.missingTexture
+            context.draw(batch.context)
         }
+
+        flush() //TODO: Find out why this is needed here to actually draw all layers
+        shader = DefaultShader
     }
 
     fun begin() {

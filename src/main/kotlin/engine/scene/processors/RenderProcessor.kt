@@ -10,15 +10,14 @@ class RenderProcessor : SceneProcessor() {
     override fun process(delta: Float) {
         val scene = scene ?: return
 
-        for (gameObject in scene) {
+        for (gameObject in scene.activeGameObjects) {
             val spriteComponent = gameObject.getComponent<SpriteComponent>()
-            val materialComponent = gameObject.getComponent<MaterialComponent>()
 
             val transformComponent = gameObject.getComponent<TransformComponent>()
             val particleEffectComponent = gameObject.getComponent<ParticleEffectComponent>()
 
-            if (spriteComponent != null && materialComponent != null)
-                Game.renderer.submit(spriteComponent.layer, spriteComponent, materialComponent.material, spriteComponent.isFlippedX, spriteComponent.isFlippedY)
+            if (spriteComponent != null)
+                Game.renderer.submit(spriteComponent.layer, spriteComponent, spriteComponent.material?.let { Game.materials[it] } ?: Game.graphics2d.missingMaterial, spriteComponent.isFlippedX, spriteComponent.isFlippedY)
 
             if (transformComponent != null && particleEffectComponent != null)
                 particleEffectComponent.effect.render(particleEffectComponent.layer, transformComponent.transform.global)

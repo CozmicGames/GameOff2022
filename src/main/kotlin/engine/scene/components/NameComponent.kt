@@ -28,7 +28,7 @@ class NameComponent : Component() {
 }
 
 fun Scene.findGameObjectByName(name: String): GameObject? {
-    forEach {
+    gameObjects.forEach {
         val nameComponent = it.getComponent<NameComponent>()
         if (nameComponent?.name == name)
             return it

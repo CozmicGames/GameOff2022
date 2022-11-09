@@ -3,21 +3,23 @@ package game.states
 import com.cozmicgames.Kore
 import com.cozmicgames.audio
 import com.cozmicgames.files
-import com.cozmicgames.files.FileHandle
-import com.cozmicgames.files.extension
-import com.cozmicgames.files.isDirectory
+import com.cozmicgames.files.*
 import com.cozmicgames.graphics
 import com.cozmicgames.utils.Color
+import com.cozmicgames.utils.Properties
 import com.cozmicgames.utils.durationOf
 import engine.Game
 import engine.GameState
 import engine.graphics.ui.GUI
 import engine.graphics.ui.widgets.label
-import game.Constants
+import engine.materials.Material
+import game.Version
 import kotlin.math.min
 
 class LoadingGameState : GameState {
-    private val loadingTasks = arrayListOf<() -> Unit>()
+    private class LoadingTask(val file: FileHandle, val load: () -> Unit)
+
+    private val loadingTasks = arrayListOf<LoadingTask>()
     private var totalTasks = 0
     private var loadedTasks = 0
 
@@ -26,21 +28,24 @@ class LoadingGameState : GameState {
     override fun onCreate() {
         fun searchDirectory(directoryFile: FileHandle) {
             directoryFile.list {
-                val file = directoryFile.child(it)
+                val file = Kore.files.asset(it)
                 if (file.isDirectory)
                     searchDirectory(file)
                 else {
                     if (file.extension in Kore.graphics.supportedImageFormats)
-                        loadingTasks += { Game.textures.add(file) }
+                        loadingTasks += LoadingTask(file) { Game.textures.add(file) }
 
                     if (file.extension in Kore.graphics.supportedFontFormats)
-                        loadingTasks += { Game.fonts.add(file) }
+                        loadingTasks += LoadingTask(file) { Game.fonts.add(file) }
 
                     if (file.extension in Kore.audio.supportedSoundFormats)
-                        loadingTasks += { Game.sounds.add(file) }
+                        loadingTasks += LoadingTask(file) { Game.sounds.add(file) }
 
                     if (file.extension.lowercase() == "shader")
-                        loadingTasks += { Game.shaders.add(file) }
+                        loadingTasks += LoadingTask(file) { Game.shaders.add(file) }
+
+                    if (file.extension.lowercase() == "material")
+                        loadingTasks += LoadingTask(file) { Game.materials.add(file) }
                 }
             }
         }
@@ -57,12 +62,13 @@ class LoadingGameState : GameState {
 
         while (loadingTasks.isNotEmpty() && usedTime < 1.0f / delta) {
             usedTime += durationOf {
-                loadingTasks.removeFirst()()
+                val task = loadingTasks.removeFirst()
+                task.load()
                 loadedTasks++
             }
         }
 
-        Kore.graphics.clear(Color.LIME)
+        Kore.graphics.clear(Color.DARK_GRAY)
 
         val progressWidth = Kore.graphics.width * 0.75f
         val progressHeight = 24.0f
@@ -79,12 +85,12 @@ class LoadingGameState : GameState {
 
         Game.graphics2d.render {
             it.draw(Game.textures[Kore.files.asset("icons/icon.png")]!!, iconX, iconY, iconSize, iconSize)
-            it.drawRect(progressX, progressY, progressWidth, progressHeight, Color.DARK_GRAY)
+            it.drawRect(progressX, progressY, progressWidth, progressHeight, Color.GRAY)
             it.drawRect(progressX, progressY, progressWidth * progress, progressHeight, Color.RED)
         }
 
         ui.begin()
-        ui.label(Constants.versionString, Color.CLEAR)
+        ui.label(Version.versionString, Color.CLEAR)
         ui.end()
 
         return if (loadedTasks == totalTasks) MainMenuState() else this

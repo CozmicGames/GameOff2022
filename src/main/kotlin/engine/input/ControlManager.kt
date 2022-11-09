@@ -1,9 +1,10 @@
 package engine.input
 
+import com.cozmicgames.utils.Disposable
 import com.cozmicgames.utils.Properties
 import com.cozmicgames.utils.Updateable
 
-class ControlManager : Updateable {
+class ControlManager : Updateable, Disposable {
     private val actionsInternal = arrayListOf<ControlAction>()
 
     val actions get() = actionsInternal.toList()
@@ -57,6 +58,12 @@ class ControlManager : Updateable {
                 val action = find(name) ?: add(name)
                 action.read(actionProperties)
             }
+        }
+    }
+
+    override fun dispose() {
+        actionsInternal.forEach {
+            it.dispose()
         }
     }
 }

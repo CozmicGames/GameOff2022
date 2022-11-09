@@ -177,6 +177,10 @@ open class PolygonShape : Shape() {
         }
     }
 
+    fun setVertices(vararg vertices: Vertex) {
+        this.vertices = arrayOf(*vertices)
+    }
+
     fun getSupport(x: Float, y: Float): Vertex {
         var bestProjection = -Float.MAX_VALUE
         var bestVertex = vertices.first()

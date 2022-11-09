@@ -28,8 +28,8 @@ class Physics : Updateable {
     private fun step(delta: Float) {
         fun integrateForces(body: Body) {
             if (!body.isStatic) {
-                body.velocity.x += (body.force.x * body.inverseMass + gravity.x) * delta * 0.5f
-                body.velocity.y += (body.force.y * body.inverseMass + gravity.y) * delta * 0.5f
+                body.velocity.x += (body.force.x * body.inverseMass + body.gravityScale * gravity.x) * delta * 0.5f
+                body.velocity.y += (body.force.y * body.inverseMass + body.gravityScale * gravity.y) * delta * 0.5f
             }
 
             if (!body.isRotationLocked)

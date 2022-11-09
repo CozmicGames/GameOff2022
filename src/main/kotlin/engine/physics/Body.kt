@@ -34,6 +34,7 @@ open class Body(val transform: Transform = Transform()) {
     var restitution = 0.2f
     var staticFriction = 0.5f
     var dynamicFriction = 0.3f
+    var gravityScale = 1.0f
 
     val isStatic get() = inverseMass == 0.0f
 

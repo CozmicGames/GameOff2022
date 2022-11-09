@@ -7,10 +7,10 @@ private const val CONFIG_FILE = "config.txt"
 fun main() {
     val configuration = Configuration()
 
-    if (!configuration.readFromFile(CONFIG_FILE)) {
-        configuration.title = "Game"
+    if (!configuration.readFromFile(CONFIG_FILE))
         configuration.icons = arrayOf("icons/icon.png")
-    }
+
+    configuration.title = "GameOff 2022"
 
     Kore.start(Game, configuration) { DesktopPlatform() }
 

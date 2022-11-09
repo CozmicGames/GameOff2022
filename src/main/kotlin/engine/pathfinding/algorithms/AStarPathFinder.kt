@@ -98,6 +98,7 @@ class AStarPathFinder(val map: TileBasedMap, val heuristic: Heuristic = ClosestH
             when (node.state) {
                 Node.State.OPEN -> open -= node
                 Node.State.CLOSED -> closed -= node
+                else -> {}
             }
             node.state = Node.State.UNEVALUATED
         }

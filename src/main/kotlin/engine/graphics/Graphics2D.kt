@@ -13,6 +13,7 @@ import com.cozmicgames.utils.maths.Camera
 import com.cozmicgames.utils.maths.Matrix4x4
 import com.cozmicgames.utils.maths.OrthographicCamera
 import com.cozmicgames.utils.use
+import engine.materials.Material
 
 class Graphics2D : Disposable {
     val linearClampSampler = Kore.graphics.createSampler {
@@ -56,6 +57,10 @@ class Graphics2D : Disposable {
     }
 
     val defaultCamera = OrthographicCamera(Kore.graphics.safeWidth, Kore.graphics.safeHeight)
+
+    val missingMaterial = Material().also {
+        it.colorTexturePath = "<missing>"
+    }
 
     private val resizeListener = { width: Int, height: Int ->
         defaultCamera.width = width
