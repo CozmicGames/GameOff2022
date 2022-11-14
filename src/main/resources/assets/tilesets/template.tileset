@@ -1,0 +1,25 @@
+{
+    "types": {
+        "type": "PROPERTIES",
+        "array": [
+            {
+                "material": {
+                    "type": "STRING",
+                    "value": "testMaterial"
+                },
+                "name": {
+                    "type": "STRING",
+                    "value": "test"
+                },
+                "width": {
+                    "type": "FLOAT",
+                    "value": 1.0
+                },
+                "height": {
+                    "type": "FLOAT",
+                    "value": 1.0
+                }
+            }
+        ]
+    }
+}

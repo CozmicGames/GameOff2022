@@ -7,11 +7,12 @@ import com.cozmicgames.utils.injector
 import com.cozmicgames.utils.maths.OrthographicCamera
 import engine.audio.SoundManager
 import engine.graphics.*
-import engine.graphics.ui.GUI
 import engine.input.ControlManager
 import engine.materials.MaterialManager
 import engine.physics.Physics
+import engine.scene.SceneManager
 import engine.utils.Rumble
+import game.level.TileSetManager
 import game.states.LoadingGameState
 
 object Game : Application {
@@ -20,6 +21,8 @@ object Game : Application {
     val fonts by Kore.context.injector(true) { FontManager() }
     val shaders by Kore.context.injector(true) { ShaderManager() }
     val materials by Kore.context.injector(true) { MaterialManager() }
+    val scenes by Kore.context.injector(true) { SceneManager() }
+    val tileSets by Kore.context.injector(true) { TileSetManager() }
 
     val controls by Kore.context.injector(true) { ControlManager() }
     val graphics2d by Kore.context.injector(true) { Graphics2D() }

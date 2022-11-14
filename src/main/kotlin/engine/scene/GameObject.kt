@@ -33,20 +33,23 @@ class GameObject(val scene: Scene, val uuid: UUID) : Iterable<Component>, Dispos
 
             field = value
         }
+        get() = parent?.uuid
 
     var parent: GameObject? = null
         set(value) {
             if (field == value)
                 return
 
-            field?.children?.remove(this)
+            field?.childrenInternal?.remove(this)
             field = value
-            value?.children?.add(this)
+            value?.childrenInternal?.add(this)
 
             scene.onParentChanged(this)
         }
 
-    private val children = arrayListOf<GameObject>()
+    private val childrenInternal = arrayListOf<GameObject>()
+
+    val children get() = childrenInternal.asIterable()
 
     var isActive = true
         set(value) {
@@ -54,7 +57,7 @@ class GameObject(val scene: Scene, val uuid: UUID) : Iterable<Component>, Dispos
                 return
 
             field = value
-            children.forEach {
+            childrenInternal.forEach {
                 it.isActive = value
             }
 
@@ -111,6 +114,7 @@ class GameObject(val scene: Scene, val uuid: UUID) : Iterable<Component>, Dispos
 
     fun clearComponents() {
         components.values.forEach {
+            it.onRemoved()
             if (it is Disposable)
                 it.dispose()
         }
@@ -120,7 +124,7 @@ class GameObject(val scene: Scene, val uuid: UUID) : Iterable<Component>, Dispos
     fun read(properties: Properties) {
         clearComponents()
 
-        properties.getString("parent")?.let { parentUUID = UUID(it) }
+        properties.getString("parent")?.let { if (it != "null") parentUUID = UUID(it) }
         properties.getBoolean("active")?.let { isActive = it }
 
         properties.getPropertiesArray("components")?.let {
@@ -140,7 +144,8 @@ class GameObject(val scene: Scene, val uuid: UUID) : Iterable<Component>, Dispos
     }
 
     fun write(properties: Properties) {
-        parentUUID?.let { properties.setString("parent", it.toString()) }
+//        parentUUID?.let { properties.setString("parent", it.toString()) }
+        properties.setString("parent", parentUUID?.toString() ?: "null")
         properties.setBoolean("active", isActive)
 
         val componentsProperties = arrayListOf<Properties>()
@@ -159,9 +164,39 @@ class GameObject(val scene: Scene, val uuid: UUID) : Iterable<Component>, Dispos
 
     override fun dispose() {
         clearComponents()
+        parent = null
     }
 
     inline fun <reified T : Component> component(noinline defaultInitializer: T.() -> Unit = {}) = component(T::class, defaultInitializer)
 
     fun <T : Component> component(type: KClass<T>, defaultInitializer: T.() -> Unit = {}) = ComponentDelegate(type, defaultInitializer)
+}
+
+inline fun <reified T : Component> GameObject.findComponentInParentObjects() = findComponentInParentObjects(T::class)
+
+fun <T : Component> GameObject.findComponentInParentObjects(type: KClass<T>): T? {
+    parent?.let {
+        val component = it.getComponent(type)
+
+        if (component != null)
+            return component
+
+        return it.findComponentInParentObjects(type)
+    }
+
+    return null
+}
+
+fun GameObject.findGameObjectInChildren(filter: (GameObject) -> Boolean): GameObject? {
+    children.forEach {
+        if (filter(it))
+            return it
+
+        val result = it.findGameObjectInChildren(filter)
+
+        if (result != null)
+            return result
+    }
+
+    return null
 }

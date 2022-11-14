@@ -11,8 +11,9 @@ class SpriteComponent : Component(), Updateable, Drawable {
 
     var isFlippedX = false
     var isFlippedY = false
-    var layer = 0
-    var material: String? = null
+
+    override var layer = 0
+    override var material: String? = null
 
     var anchorX = 0.5f
         set(value) {

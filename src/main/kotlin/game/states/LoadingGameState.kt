@@ -46,6 +46,9 @@ class LoadingGameState : GameState {
 
                     if (file.extension.lowercase() == "material")
                         loadingTasks += LoadingTask(file) { Game.materials.add(file) }
+
+                    if (file.extension.lowercase() == "tileset")
+                        loadingTasks += LoadingTask(file) { Game.tileSets.add(file) }
                 }
             }
         }

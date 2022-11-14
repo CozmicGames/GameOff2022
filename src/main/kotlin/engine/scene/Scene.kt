@@ -76,8 +76,12 @@ class Scene : Disposable {
     }
 
     fun removeGameObject(gameObject: GameObject) {
-        if (gameObjectsInternal.remove(gameObject))
+        if (gameObjectsInternal.remove(gameObject)) {
+            gameObject.children.forEach {
+                removeGameObject(it)
+            }
             gameObject.dispose()
+        }
     }
 
     fun getGameObject(uuid: UUID): GameObject? {
@@ -174,16 +178,18 @@ class Scene : Disposable {
         }
     }
 
-    fun write(properties: Properties) {
+    fun write(properties: Properties, filter: (GameObject) -> Boolean = { true }) {
         val gameObjectsProperties = arrayListOf<Properties>()
 
         gameObjectsInternal.forEach {
-            val gameObjectProperties = Properties()
+            if (filter(it)) {
+                val gameObjectProperties = Properties()
 
-            gameObjectProperties.setString("uuid", it.uuid.toString())
-            it.write(gameObjectProperties)
+                gameObjectProperties.setString("uuid", it.uuid.toString())
+                it.write(gameObjectProperties)
 
-            gameObjectsProperties += gameObjectProperties
+                gameObjectsProperties += gameObjectProperties
+            }
         }
 
         properties.setPropertiesArray("gameObjects", gameObjectsProperties.toTypedArray())

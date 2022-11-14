@@ -2,35 +2,33 @@ package game.states
 
 import com.cozmicgames.Kore
 import com.cozmicgames.files
-import com.cozmicgames.files.Files
 import com.cozmicgames.files.readToString
 import com.cozmicgames.files.writeString
 import com.cozmicgames.graphics
-import com.cozmicgames.graphics.Primitive
 import com.cozmicgames.input
 import com.cozmicgames.input.Keys
-import com.cozmicgames.input.MouseButton
 import com.cozmicgames.input.MouseButtons
 import com.cozmicgames.utils.Color
 import com.cozmicgames.utils.Properties
-import com.cozmicgames.utils.maths.randomFloat
-import com.cozmicgames.utils.maths.randomInt
 import engine.Game
 import engine.GameState
-import engine.graphics.asRegion
 import engine.graphics.ui.GUI
-import engine.graphics.ui.widgets.image
 import engine.graphics.ui.widgets.textButton
-import engine.scene.GameObject
 import engine.scene.Scene
-import engine.scene.components.*
-import game.components.CameraComponent
-import engine.scene.processors.RenderProcessor
+import engine.scene.components.NameComponent
+import engine.scene.components.SpriteComponent
+import engine.scene.components.TransformComponent
+import engine.scene.components.findGameObjectByName
+import engine.scene.processors.DrawableRenderProcessor
+import engine.scene.processors.ParticleRenderProcessor
+import engine.scene.processors.SpriteRenderProcessor
 import engine.utils.FreeCameraControllerComponent
 import game.Constants
 import game.GameControls
+import game.components.CameraComponent
+import game.components.GridComponent
 import game.components.PlayerInputComponent
-import game.level.GridUtils
+import game.processors.GridEditorProcessor
 
 class LevelGameState : GameState {
     private val scene = Scene()
@@ -38,7 +36,9 @@ class LevelGameState : GameState {
     private var isMenuOpen = false
 
     override fun onCreate() {
-        scene.addSceneProcessor(RenderProcessor())
+        scene.addSceneProcessor(SpriteRenderProcessor())
+        scene.addSceneProcessor(DrawableRenderProcessor())
+        scene.addSceneProcessor(ParticleRenderProcessor())
 
         scene.addGameObject {
             addComponent<TransformComponent> {  }
@@ -51,7 +51,7 @@ class LevelGameState : GameState {
         //TODO: Remove, this is just for testing
 
         Game.controls.add("freecamera_move").also {
-            it.addMouseButton(MouseButtons.LEFT)
+            it.addMouseButton(MouseButtons.MIDDLE)
         }
 
         Game.controls.add("freecamera_move_x").also {
@@ -66,7 +66,17 @@ class LevelGameState : GameState {
             it.setScrollY()
         }
 
-        GridUtils.addGrid(scene, 50, 25, -1)
+        val gridObject = scene.addGameObject {
+            addComponent<TransformComponent> {
+                transform.scaleX = Constants.TILE_SIZE
+                transform.scaleY = Constants.TILE_SIZE
+            }
+            addComponent<GridComponent> {
+                tileSet = "assets/tilesets/test.tileset"
+            }
+        }
+
+        scene.addSceneProcessor(GridEditorProcessor(gridObject))
 
         scene.addGameObject {
             addComponent<NameComponent> {
@@ -108,8 +118,6 @@ class LevelGameState : GameState {
             properties.read(Kore.files.local("scene.txt").readToString())
             scene.read(properties)
         }
-
-
 
         scene.update(delta)
 

@@ -1,0 +1,25 @@
+{
+    "types": {
+        "type": "PROPERTIES",
+        "array": [
+            {
+                "material": {
+                    "type": "STRING",
+                    "value": "assets/materials/test_tile.material"
+                },
+                "name": {
+                    "type": "STRING",
+                    "value": "test"
+                },
+                "width": {
+                    "type": "FLOAT",
+                    "value": 1.0
+                },
+                "height": {
+                    "type": "FLOAT",
+                    "value": 1.0
+                }
+            }
+        ]
+    }
+}

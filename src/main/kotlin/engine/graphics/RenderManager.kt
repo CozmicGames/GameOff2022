@@ -29,13 +29,13 @@ class RenderManager : Disposable {
     private val renderables = arrayListOf<Renderable>()
     private val batchBuilder = RenderBatchBuilder()
 
-    fun submit(layer: Int, drawable: Drawable, material: Material, flipX: Boolean, flipY: Boolean) {
+    fun submit(drawable: Drawable, flipX: Boolean, flipY: Boolean) {
         val renderable = drawableRenderablePool.obtain()
         renderable.drawable = drawable
-        renderable.material = material
+        renderable.material = drawable.material?.let { Game.materials[it] } ?: Game.graphics2d.missingMaterial
+        renderable.layer = drawable.layer
         renderable.flipX = flipX
         renderable.flipY = flipY
-        renderable.layer = layer
         renderable.updateBounds()
         renderables += renderable
     }
