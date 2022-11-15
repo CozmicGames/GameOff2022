@@ -3,12 +3,12 @@ package game.components
 import com.cozmicgames.utils.Properties
 import com.cozmicgames.utils.Updateable
 import engine.Game
-import engine.graphics.Drawable
 import engine.graphics.buildDrawable
 import engine.scene.Component
 import engine.scene.GameObject
 import engine.scene.components.DrawableProviderComponent
 import engine.scene.components.TransformComponent
+import engine.scene.findGameObjectInChildren
 import game.level.TileSet
 
 class GridComponent : Component(), Updateable {
@@ -115,5 +115,33 @@ class GridComponent : Component(), Updateable {
         properties.setString("tileSet", tileSet)
         properties.setBoolean("isCollidable", isCollidable)
         properties.setInt("layer", layer)
+    }
+
+    fun getCellObject(cellX: Int, cellY: Int): GameObject? {
+        return gameObject.findGameObjectInChildren {
+            it.getComponent<GridCellComponent>()?.let { it.cellX == cellX && it.cellY == cellY } == true
+        }
+    }
+
+    fun removeCellObject(cellX: Int, cellY: Int) {
+        val cellObject = getCellObject(cellX, cellY) ?: return
+        gameObject.scene.removeGameObject(cellObject)
+    }
+
+    fun getOrAddCellObject(cellX: Int, cellY: Int): GameObject {
+        var cellObject = getCellObject(cellX, cellY)
+
+        if (cellObject == null) {
+            cellObject = gameObject.scene.addGameObject {
+                addComponent<GridCellComponent> {
+                    this.cellX = cellX
+                    this.cellY = cellY
+                }
+            }
+
+            cellObject.parent = gameObject
+        }
+
+        return cellObject
     }
 }

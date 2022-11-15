@@ -23,12 +23,10 @@ import engine.scene.processors.DrawableRenderProcessor
 import engine.scene.processors.ParticleRenderProcessor
 import engine.scene.processors.SpriteRenderProcessor
 import engine.utils.FreeCameraControllerComponent
-import game.Constants
 import game.GameControls
 import game.components.CameraComponent
 import game.components.GridComponent
 import game.components.PlayerInputComponent
-import game.processors.GridEditorProcessor
 
 class LevelGameState : GameState {
     private val scene = Scene()
@@ -67,16 +65,11 @@ class LevelGameState : GameState {
         }
 
         val gridObject = scene.addGameObject {
-            addComponent<TransformComponent> {
-                transform.scaleX = Constants.TILE_SIZE
-                transform.scaleY = Constants.TILE_SIZE
-            }
+            addComponent<TransformComponent> {}
             addComponent<GridComponent> {
                 tileSet = "assets/tilesets/test.tileset"
             }
         }
-
-        scene.addSceneProcessor(GridEditorProcessor(gridObject))
 
         scene.addGameObject {
             addComponent<NameComponent> {

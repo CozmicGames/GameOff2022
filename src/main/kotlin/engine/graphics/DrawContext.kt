@@ -51,6 +51,8 @@ class DrawContext(size: Int = 512) : Disposable {
 
     private var indices = IntBuffer(size)
 
+    private val path = VectorPath()
+
     var currentIndex = 0
 
     fun vertex(block: (Vertex) -> Unit) {
@@ -89,6 +91,12 @@ class DrawContext(size: Int = 512) : Disposable {
         repeat(numVertices) {
             vertices[it].transform(matrix)
         }
+    }
+
+    fun path(block: VectorPath.() -> Unit): VectorPath {
+        path.clear()
+        block(path)
+        return path
     }
 
     fun draw(context: DrawContext) {
@@ -150,11 +158,6 @@ fun DrawContext.drawRect(x: Float, y: Float, width: Float, height: Float, color:
     var p3y = y1
 
     if (rotation != 0.0f) {
-        val halfWidth = (x1 - x0) * 0.5f
-        val halfHeight = (y1 - y0) * 0.5f
-        val centerX = x0 + halfWidth
-        val centerY = y0 + halfHeight
-
         val cos = cos(rotation)
         val sin = sin(rotation)
 
@@ -175,11 +178,6 @@ fun DrawContext.drawRect(x: Float, y: Float, width: Float, height: Float, color:
     vertex(p1x, p1y, u1, v0, u0, v0, u1, v1, colorBits)
     vertex(p2x, p2y, u1, v1, u0, v0, u1, v1, colorBits)
     vertex(p3x, p3y, u0, v1, u0, v0, u1, v1, colorBits)
-
-    //vertex(x0, y0, u0, v0, u0, v0, u1, v1, colorBits)
-    //vertex(x1, y0, u1, v0, u0, v0, u1, v1, colorBits)
-    //vertex(x1, y1, u1, v1, u0, v0, u1, v1, colorBits)
-    //vertex(x0, y1, u0, v1, u0, v0, u1, v1, colorBits)
 
     index(currentIndex)
     index(currentIndex + 1)
