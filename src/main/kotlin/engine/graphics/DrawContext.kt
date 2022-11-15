@@ -53,6 +53,8 @@ class DrawContext(size: Int = 512) : Disposable {
 
     private val path = VectorPath()
 
+    private val triangulator = Triangulator()
+
     var currentIndex = 0
 
     fun vertex(block: (Vertex) -> Unit) {
@@ -97,6 +99,10 @@ class DrawContext(size: Int = 512) : Disposable {
         path.clear()
         block(path)
         return path
+    }
+
+    fun triangulate(path: VectorPath): List<Int> {
+        return triangulator.computeTriangles(path)
     }
 
     fun draw(context: DrawContext) {
@@ -220,7 +226,7 @@ fun DrawContext.drawPathFilledConvex(path: VectorPath, color: Color = Color.WHIT
 }
 
 fun DrawContext.drawPathFilledConcave(path: VectorPath, color: Color = Color.WHITE, uMin: Float = 0.0f, vMin: Float = 0.0f, uMax: Float = 1.0f, vMax: Float = 1.0f) {
-    val indices = Triangulator().computeTriangles(path)
+    val indices = triangulate(path)
 
     repeat(indices.size / 3) {
         val i0 = it * 3
