@@ -6,6 +6,8 @@ import engine.Game
 import engine.scene.Component
 import engine.scene.components.TransformComponent
 import game.components.CameraComponent
+import kotlin.math.max
+import kotlin.math.min
 
 class FreeCameraControllerComponent : Component(), Updateable {
     var moveActionName = "freecamera_move"
@@ -35,7 +37,8 @@ class FreeCameraControllerComponent : Component(), Updateable {
 
         transformComponent.transform.x -= moveX
         transformComponent.transform.y -= moveY
-        cameraComponent.zoom += zoom
+        cameraComponent.zoom -= zoom
+        cameraComponent.zoom = max(cameraComponent.zoom, 0.001f)
     }
 
     override fun read(properties: Properties) {

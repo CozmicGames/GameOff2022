@@ -1,4 +1,4 @@
-package game.states.editor
+package game.level
 
 import com.cozmicgames.utils.collections.Array2D
 
@@ -15,9 +15,5 @@ class SetTilesCommand(region: GridRegion, private val tiles: Array2D<String?>) :
 
     override fun undo() {
         region.setTiles(previousTiles)
-    }
-
-    override fun toString(): String {
-        return "${region.minX}  ${region.minY}"
     }
 }

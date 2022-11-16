@@ -9,98 +9,147 @@ import engine.scene.GameObject
 import engine.scene.components.DrawableProviderComponent
 import engine.scene.components.TransformComponent
 import engine.scene.findGameObjectInChildren
-import game.level.TileSet
+import game.level.GridDrawable
 
 class GridComponent : Component(), Updateable {
+    companion object {
+        private const val CHUNK_SIZE = 32
+    }
+
+    private inner class Chunk(val chunkX: Int, val chunkY: Int) {
+        var isDirty = true
+
+        fun rebuildDrawables() {
+            removeDrawables()
+
+            val tileSet = Game.tileSets[tileSet]
+
+            val batches = hashMapOf<String, MutableList<GridCellComponent>>()
+
+            val minTileX = chunkX * CHUNK_SIZE
+            val minTileY = chunkY * CHUNK_SIZE
+            val maxTileX = minTileX + CHUNK_SIZE
+            val maxTileY = minTileY + CHUNK_SIZE
+
+            fun findCellComponents(gameObject: GameObject) {
+                for (child in gameObject.children) {
+                    val gridCellComponent = child.getComponent<GridCellComponent>() ?: continue
+
+                    if (gridCellComponent.cellX !in minTileX until maxTileX || gridCellComponent.cellY !in minTileY until maxTileY)
+                        continue
+
+                    val material = tileSet[gridCellComponent.tileType].getMaterial(this@GridComponent, gridCellComponent.cellX, gridCellComponent.cellY)
+
+                    batches.getOrPut(material) { arrayListOf() } += gridCellComponent
+                }
+            }
+
+            findCellComponents(gameObject)
+
+            batches.forEach { (material, list) ->
+                println(material)
+
+                val drawable = buildDrawable(material, layer) {
+                    var currentIndex = 0
+
+                    list.forEach {
+                        val posX = it.cellX * cellSize + transformComponent.transform.x
+                        val posY = it.cellY * cellSize + transformComponent.transform.y
+
+                        vertex {
+                            x = posX
+                            y = posY
+                            u = 0.0f
+                            v = 0.0f
+                        }
+
+                        vertex {
+                            x = posX + cellSize
+                            y = posY
+                            u = 1.0f
+                            v = 0.0f
+                        }
+
+                        vertex {
+                            x = posX + cellSize
+                            y = posY + cellSize
+                            u = 1.0f
+                            v = 1.0f
+                        }
+
+                        vertex {
+                            x = posX
+                            y = posY + cellSize
+                            u = 0.0f
+                            v = 1.0f
+                        }
+
+                        index(currentIndex)
+                        index(currentIndex + 1)
+                        index(currentIndex + 2)
+                        index(currentIndex)
+                        index(currentIndex + 2)
+                        index(currentIndex + 3)
+
+                        currentIndex += 4
+                    }
+                }
+
+                if (drawable.verticesCount > 0 && drawable.indicesCount > 0)
+                    drawableProviderComponent.drawables += GridDrawable(chunkX, chunkY, drawable)
+            }
+        }
+
+        fun removeDrawables() {
+            drawableProviderComponent.drawables.removeIf { it is GridDrawable && it.chunkX == chunkX && it.chunkY == chunkY }
+        }
+    }
+
     var cellSize = 32.0f
     var tileSet = "<missing>"
     var isCollidable = false
     var layer = 0
 
-    internal var isDirty = true
+    private val chunks = arrayListOf<Chunk>()
 
     private lateinit var drawableProviderComponent: DrawableProviderComponent
     private lateinit var transformComponent: TransformComponent
+
+    fun setDirty(cellX: Int, cellY: Int) {
+        val chunkX = (if (cellX < 0) cellX - CHUNK_SIZE - 1 else cellX) / CHUNK_SIZE
+        val chunkY = (if (cellY < 0) cellY - CHUNK_SIZE - 1 else cellY) / CHUNK_SIZE
+
+        var chunk = chunks.find { it.chunkX == chunkX && it.chunkY == chunkY }
+
+        if (chunk == null) {
+            chunk = Chunk(chunkX, chunkY)
+            chunks += chunk
+        }
+
+        chunk.isDirty = true
+    }
 
     override fun onAdded() {
         drawableProviderComponent = gameObject.getOrAddComponent()
         transformComponent = gameObject.getOrAddComponent()
         transformComponent.transform.addChangeListener {
-            isDirty = true
+            chunks.forEach {
+                it.isDirty = true
+            }
         }
     }
 
     override fun update(delta: Float) {
-        if (!isDirty)
-            return
-
-        val tileSet = Game.tileSets[tileSet]
-
-        val cells = hashMapOf<TileSet.TileType, MutableList<GridCellComponent>>()
-
-        fun findCellComponents(gameObject: GameObject) {
-            for (child in gameObject.children) {
-                val gridCellComponent = child.getComponent<GridCellComponent>() ?: continue
-                cells.getOrPut(tileSet[gridCellComponent.tileType]) { arrayListOf() } += gridCellComponent
-            }
+        chunks.forEach {
+            if (it.isDirty)
+                it.rebuildDrawables()
         }
+    }
 
-        findCellComponents(gameObject)
-
-        drawableProviderComponent.drawables.clear()
-
-        cells.forEach { (tileType, list) ->
-            val drawable = buildDrawable(tileType.material, layer) {
-                var currentIndex = 0
-
-                list.forEach {
-                    val posX = it.cellX * cellSize + transformComponent.transform.x
-                    val posY = it.cellY * cellSize + transformComponent.transform.y
-
-                    vertex {
-                        x = posX
-                        y = posY
-                        u = 0.0f
-                        v = 0.0f
-                    }
-
-                    vertex {
-                        x = posX + cellSize
-                        y = posY
-                        u = 1.0f
-                        v = 0.0f
-                    }
-
-                    vertex {
-                        x = posX + cellSize
-                        y = posY + cellSize
-                        u = 1.0f
-                        v = 1.0f
-                    }
-
-                    vertex {
-                        x = posX
-                        y = posY + cellSize
-                        u = 0.0f
-                        v = 1.0f
-                    }
-
-                    index(currentIndex)
-                    index(currentIndex + 1)
-                    index(currentIndex + 2)
-                    index(currentIndex)
-                    index(currentIndex + 2)
-                    index(currentIndex + 3)
-
-                    currentIndex += 4
-                }
-            }
-
-            if (drawable.verticesCount > 0 && drawable.indicesCount > 0)
-                drawableProviderComponent.drawables += drawable
+    override fun onRemoved() {
+        chunks.forEach {
+            it.removeDrawables()
         }
-
-        isDirty = false
     }
 
     override fun read(properties: Properties) {
@@ -145,3 +194,5 @@ class GridComponent : Component(), Updateable {
         return cellObject
     }
 }
+
+fun GridComponent.getCellType(cellX: Int, cellY: Int) = getCellObject(cellX, cellY)?.getComponent<GridCellComponent>()?.tileType

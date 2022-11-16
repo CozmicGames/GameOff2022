@@ -600,6 +600,20 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
     }
 
     /**
+     * Returns an [GUIVisibility] instance that contains every element that's been added until the invocation of this method.
+     * This can be used to check if a point is outside of any GUI elements.
+     *
+     * @return The computed [GUIVisibility].
+     */
+    fun getCompleteVisibility(): GUIVisibility {
+        val visibility = GUIVisibility()
+        layers.forEach {
+            it.addToVisibility(visibility)
+        }
+        return visibility
+    }
+
+    /**
      * End GUI rendering.
      * This must be called after all widget functions.
      * It will render the GUI by flushing the command list.

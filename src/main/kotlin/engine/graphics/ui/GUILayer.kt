@@ -16,6 +16,12 @@ class GUILayer {
         return visibility.contains(x, y)
     }
 
+    fun addToVisibility(visibility: GUIVisibility) {
+        this.visibility.nodes.forEach {
+            visibility.add(it.x, it.y, it.width, it.height)
+        }
+    }
+
     fun process(renderer: Renderer) {
         commands.process(renderer)
         visibility.reset()

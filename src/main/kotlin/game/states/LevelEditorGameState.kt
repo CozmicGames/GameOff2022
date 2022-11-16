@@ -1,11 +1,14 @@
 package game.states
 
 import com.cozmicgames.Kore
+import com.cozmicgames.files
+import com.cozmicgames.files.writeString
 import com.cozmicgames.graphics
 import com.cozmicgames.input
 import com.cozmicgames.input.Keys
 import com.cozmicgames.input.MouseButtons
 import com.cozmicgames.utils.Color
+import com.cozmicgames.utils.Properties
 import com.cozmicgames.utils.collections.Array2D
 import com.cozmicgames.utils.maths.*
 import engine.Game
@@ -14,10 +17,8 @@ import engine.graphics.asRegion
 import engine.graphics.drawPathStroke
 import engine.graphics.drawRect
 import engine.graphics.ui.GUI
-import engine.graphics.ui.widgets.imageButton
-import engine.graphics.ui.widgets.label
-import engine.graphics.ui.widgets.selectableImage
-import engine.graphics.ui.widgets.textButton
+import engine.graphics.ui.GUIVisibility
+import engine.graphics.ui.widgets.*
 import engine.scene.Scene
 import engine.scene.components.TransformComponent
 import engine.scene.processors.DrawableRenderProcessor
@@ -26,15 +27,15 @@ import engine.scene.processors.SpriteRenderProcessor
 import engine.utils.FreeCameraControllerComponent
 import game.GameControls
 import game.components.CameraComponent
-import game.components.GridCellComponent
 import game.components.GridComponent
-import game.states.editor.*
+import game.components.getCellType
+import game.level.*
 import kotlin.math.ceil
 import kotlin.math.floor
 
 class LevelEditorGameState : GameState {
     private companion object {
-        const val TOOL_IMAGE_SIZE = 32.0f
+        const val TOOL_IMAGE_SIZE = 40.0f
         val PANEL_BACKGROUND_COLOR = Color(0x575B5BFF)
     }
 
@@ -72,7 +73,7 @@ class LevelEditorGameState : GameState {
         }
     }
     private val editor = LevelEditor()
-
+    private val scrollAmount = Vector2()
     private val ui = GUI()
     private var isMenuOpen = false
         set(value) {
@@ -133,7 +134,7 @@ class LevelEditorGameState : GameState {
     private fun pasteSelection() {
         selectionRegion?.let {
             copiedRegion?.let { source ->
-                editor.setTiles(it, source)
+                editor.setTileTypes(it, source)
             }
         }
     }
@@ -155,10 +156,10 @@ class LevelEditorGameState : GameState {
 
         var backgroundTileX = floor((camera.position.x - camera.rectangle.width * 0.5f) / backgroundTileWidth) * backgroundTileWidth
 
-        repeat(numBackgroundTilesX) { x ->
+        repeat(numBackgroundTilesX) {
             var backgroundTileY = floor((camera.position.y - camera.rectangle.height * 0.5f) / backgroundTileHeight) * backgroundTileHeight
 
-            repeat(numBackgroundTilesY) { y ->
+            repeat(numBackgroundTilesY) {
                 Game.renderer.submit(grid.layer - 1, backgroundTexture.texture, "default", false, false) {
                     it.drawRect(backgroundTileX, backgroundTileY, backgroundTileWidth, backgroundTileHeight, color = Color.LIGHT_GRAY, u0 = backgroundTexture.u0, v0 = backgroundTexture.v0, u1 = backgroundTexture.u1, v1 = backgroundTexture.v1)
                 }
@@ -170,7 +171,7 @@ class LevelEditorGameState : GameState {
         }
     }
 
-    fun drawCurrentTool(grid: GridComponent, camera: OrthographicCamera) {
+    fun drawCurrentTool(grid: GridComponent, camera: OrthographicCamera, visibility: GUIVisibility) {
         val (worldX, worldY, _) = camera.unproject(Kore.input.x.toFloat(), Kore.input.y.toFloat())
 
         val tileX = floor(worldX / grid.cellSize).toInt()
@@ -191,12 +192,13 @@ class LevelEditorGameState : GameState {
             }
         }
 
-        if (cursorPosition in Rectangle(Kore.graphics.width - TOOL_IMAGE_SIZE, Kore.graphics.height - ToolType.values().size * TOOL_IMAGE_SIZE, TOOL_IMAGE_SIZE, ToolType.values().size * TOOL_IMAGE_SIZE))
+        if (Vector2(cursorPosition.x, Kore.graphics.height - cursorPosition.y) in visibility)
             return
 
         when (currentTool) {
             ToolType.PENCIL -> {
-                val currentTypeTexture = Game.materials[Game.tileSets[grid.tileSet][currentType].material]?.colorTexturePath?.let {
+                val potentialMaterialName = Game.tileSets[grid.tileSet][currentType].getMaterial(grid, tileX, tileY)
+                val currentTypeTexture = Game.materials[potentialMaterialName]?.colorTexturePath?.let {
                     Game.textures[it]
                 } ?: Game.graphics2d.missingTexture.asRegion()
 
@@ -204,15 +206,15 @@ class LevelEditorGameState : GameState {
                     it.drawRect(tileX * grid.cellSize, tileY * grid.cellSize, grid.cellSize, grid.cellSize, Color(1.0f, 1.0f, 1.0f, 0.5f), u0 = currentTypeTexture.u0, v0 = currentTypeTexture.v0, u1 = currentTypeTexture.u1, v1 = currentTypeTexture.v1)
                 }
 
-                if (Kore.input.isButtonDown(MouseButtons.LEFT) && grid.getCellObject(tileX, tileY)?.getComponent<GridCellComponent>()?.tileType != currentType)
-                    editor.setTile(grid, tileX, tileY, currentType)
+                if (Kore.input.isButtonDown(MouseButtons.LEFT) && grid.getCellType(tileX, tileY) != currentType)
+                    editor.setTileType(grid, tileX, tileY, currentType)
 
-                if (Kore.input.isButtonDown(MouseButtons.RIGHT) && grid.getCellObject(tileX, tileY)?.getComponent<GridCellComponent>()?.tileType != null)
-                    editor.setTile(grid, tileX, tileY, null)
+                if (Kore.input.isButtonDown(MouseButtons.RIGHT) && grid.getCellType(tileX, tileY) != null)
+                    editor.setTileType(grid, tileX, tileY, null)
             }
             ToolType.DELETE -> {
-                if ((Kore.input.isButtonDown(MouseButtons.LEFT) || Kore.input.isButtonDown(MouseButtons.RIGHT)) && grid.getCellObject(tileX, tileY)?.getComponent<GridCellComponent>()?.tileType != null)
-                    editor.setTile(grid, tileX, tileY, null)
+                if ((Kore.input.isButtonDown(MouseButtons.LEFT) || Kore.input.isButtonDown(MouseButtons.RIGHT)) && grid.getCellType(tileX, tileY) != null)
+                    editor.setTileType(grid, tileX, tileY, null)
             }
             ToolType.SELECT -> {
                 if (Kore.input.isButtonJustDown(MouseButtons.RIGHT))
@@ -235,7 +237,7 @@ class LevelEditorGameState : GameState {
                 }
             }
             ToolType.PICK -> {
-                val type = grid.getCellObject(tileX, tileY)?.getComponent<GridCellComponent>()?.tileType
+                val type = grid.getCellType(tileX, tileY)
                 if (type != null)
                     currentType = type
             }
@@ -244,7 +246,6 @@ class LevelEditorGameState : GameState {
     }
 
     fun drawToolSelection() {
-        ui.begin()
         ui.setLastElement(ui.absolute(Kore.graphics.width - TOOL_IMAGE_SIZE, 0.0f))
         ui.group(PANEL_BACKGROUND_COLOR) {
             ToolType.values().forEach {
@@ -252,7 +253,7 @@ class LevelEditorGameState : GameState {
                 when (it) {
                     ToolType.FILL -> ui.imageButton(texture, TOOL_IMAGE_SIZE, TOOL_IMAGE_SIZE) {
                         selectionRegion?.let {
-                            editor.setTiles(it, currentType)
+                            editor.setTileTypes(it, currentType)
                         }
                     }
                     ToolType.UNDO -> ui.imageButton(texture, TOOL_IMAGE_SIZE, TOOL_IMAGE_SIZE) {
@@ -277,11 +278,9 @@ class LevelEditorGameState : GameState {
                 }
             }
         }
-        ui.end()
     }
 
     fun drawCoordinateInfoLine(grid: GridComponent, camera: OrthographicCamera) {
-        ui.begin()
         ui.setLastElement(ui.absolute(0.0f, Kore.graphics.height - ui.skin.elementSize))
         ui.group(PANEL_BACKGROUND_COLOR) {
             ui.sameLine {
@@ -303,11 +302,71 @@ class LevelEditorGameState : GameState {
                 }
             }
         }
-        ui.end()
+    }
+
+    fun drawTypeSelection(grid: GridComponent) {
+        ui.setLastElement(ui.absolute(0.0f, 0.0f))
+        ui.group(PANEL_BACKGROUND_COLOR) {
+            ui.scrollArea(TOOL_IMAGE_SIZE * 5f, scroll = scrollAmount) {
+                val tileSet = Game.tileSets[grid.tileSet]
+
+                for (name in tileSet.names) {
+                    if (name !in tileSet)
+                        continue
+
+                    val tileType = tileSet[name]
+                    val isSelected = currentType == name
+
+
+                    val texture = Game.textures[Game.materials[tileType.defaultMaterial]?.colorTexturePath ?: "<missing>"] ?: Game.graphics2d.missingTexture.asRegion()
+
+                    ui.selectableImage(texture, TOOL_IMAGE_SIZE, TOOL_IMAGE_SIZE, isSelected) {
+                        currentType = name
+                    }
+                }
+            }
+        }
     }
 
     override fun onFrame(delta: Float): GameState {
         Kore.graphics.clear(Color(0x726D8AFF))
+
+        if (isMenuOpen) {
+            ui.begin()
+            ui.group(Color(0xFFF5CCFF.toInt())) {
+                ui.textButton("Resume") {
+                    isMenuOpen = false
+                }
+                ui.textButton("To Menu") {
+                    println("To menu") //TODO
+                }
+                ui.textButton("Settings") {
+                    println("Settings") //TODO
+                }
+                ui.textButton("Close Game") {
+                    Kore.stop()
+                }
+            }
+            ui.end()
+        }
+
+        if (Kore.input.isKeyDown(Keys.KEY_CONTROL) && Kore.input.isKeyJustDown(Keys.KEY_Z))
+            editor.undo()
+
+        if (Kore.input.isKeyDown(Keys.KEY_CONTROL) && Kore.input.isKeyJustDown(Keys.KEY_Y))
+            editor.redo()
+
+        if (Kore.input.isKeyDown(Keys.KEY_CONTROL) && Kore.input.isKeyJustDown(Keys.KEY_C))
+            copySelection()
+
+        if (Kore.input.isKeyDown(Keys.KEY_CONTROL) && Kore.input.isKeyJustDown(Keys.KEY_V))
+            pasteSelection()
+
+        if (Kore.input.isKeyJustDown(Keys.KEY_DELETE))
+            deleteSelection()
+
+        if (GameControls.openMenuFromLevel.isTriggered)
+            isMenuOpen = !isMenuOpen
 
         scene.update(delta)
 
@@ -328,49 +387,17 @@ class LevelEditorGameState : GameState {
 
         drawBackground(grid, mainCamera)
 
-        if (Kore.input.isKeyDown(Keys.KEY_CONTROL) && Kore.input.isKeyJustDown(Keys.KEY_Z))
-            editor.undo()
-
-        if (Kore.input.isKeyDown(Keys.KEY_CONTROL) && Kore.input.isKeyJustDown(Keys.KEY_Y))
-            editor.redo()
-
-        if (Kore.input.isKeyDown(Keys.KEY_CONTROL) && Kore.input.isKeyJustDown(Keys.KEY_C))
-            copySelection()
-
-        if (Kore.input.isKeyDown(Keys.KEY_CONTROL) && Kore.input.isKeyJustDown(Keys.KEY_V))
-            pasteSelection()
-
-        if (Kore.input.isKeyJustDown(Keys.KEY_DELETE))
-            deleteSelection()
-
         Game.renderer.render(mainCamera) { it !in mainCameraComponent.excludedLayers }
         Game.renderer.clear()
 
-        if (GameControls.openMenuFromLevel.isTriggered)
-            isMenuOpen = !isMenuOpen
-
+        ui.begin()
         drawToolSelection()
-        drawCurrentTool(grid, mainCamera)
         drawCoordinateInfoLine(grid, mainCamera)
+        drawTypeSelection(grid)
+        val visibility = ui.getCompleteVisibility()
+        ui.end()
 
-        if (isMenuOpen) {
-            ui.begin()
-            ui.group(Color(0xFFF5CCFF.toInt())) {
-                ui.textButton("Resume") {
-                    isMenuOpen = false
-                }
-                ui.textButton("To Menu") {
-                    println("To menu") //TODO
-                }
-                ui.textButton("Settings") {
-                    println("Settings") //TODO
-                }
-                ui.textButton("Close Game") {
-                    Kore.stop()
-                }
-            }
-            ui.end()
-        }
+        drawCurrentTool(grid, mainCamera, visibility)
 
         return this
     }

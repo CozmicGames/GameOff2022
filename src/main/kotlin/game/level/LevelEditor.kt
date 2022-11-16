@@ -1,4 +1,4 @@
-package game.states.editor
+package game.level
 
 import com.cozmicgames.utils.collections.Array2D
 import com.cozmicgames.utils.collections.FixedSizeStack
@@ -9,6 +9,7 @@ class LevelEditor(maxCommands: Int = 100) {
         val isUndoable get() = false
 
         fun execute(): Boolean
+
         fun undo()
     }
 
@@ -52,10 +53,10 @@ class LevelEditor(maxCommands: Int = 100) {
     }
 }
 
-fun LevelEditor.setTiles(grid: GridComponent, x: Int, y: Int, width: Int, height: Int, tiles: Array2D<String?>) = execute(SetTilesCommand(grid.getRegion(x, y, width, height), tiles))
+fun LevelEditor.setTileTypes(region: GridRegion, tiles: Array2D<String?>) = execute(SetTilesCommand(region, tiles))
 
-fun LevelEditor.setTiles(region: GridRegion, tiles: Array2D<String?>) = execute(SetTilesCommand(region, tiles))
+fun LevelEditor.setTileTypes(grid: GridComponent, x: Int, y: Int, width: Int, height: Int, tiles: Array2D<String?>) = setTileTypes(grid.getRegion(x, y, width, height), tiles)
 
-fun LevelEditor.setTiles(region: GridRegion, tile: String?) = execute(SetTilesCommand(region, Array2D(region.width, region.height) { _, _ -> tile }))
+fun LevelEditor.setTileTypes(region: GridRegion, tile: String?) = setTileTypes(region, Array2D(region.width, region.height) { _, _ -> tile })
 
-fun LevelEditor.setTile(grid: GridComponent, x: Int, y: Int, type: String?) = execute(SetTilesCommand(grid.getRegion(x, y, 1, 1), Array2D(1, 1) { _, _ -> type }))
+fun LevelEditor.setTileType(grid: GridComponent, x: Int, y: Int, type: String?) = setTileTypes(grid, x, y, 1, 1, Array2D(1, 1) { _, _ -> type })

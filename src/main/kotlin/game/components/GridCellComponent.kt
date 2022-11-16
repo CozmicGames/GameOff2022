@@ -9,6 +9,7 @@ import engine.scene.findComponentInParentObjects
 class GridCellComponent : Component(), GridCollidable {
     var cellX = 0
     var cellY = 0
+
     var tileType = "<missing>"
 
     override fun calculateBounds(bounds: Rectangle) {
@@ -28,12 +29,12 @@ class GridCellComponent : Component(), GridCollidable {
 
     override fun onAdded() {
         val gridComponent = gameObject.findComponentInParentObjects<GridComponent>() ?: return
-        gridComponent.isDirty = true
+        gridComponent.setDirty(cellX, cellY)
     }
 
     override fun onRemoved() {
         val gridComponent = gameObject.findComponentInParentObjects<GridComponent>() ?: return
-        gridComponent.isDirty = true
+        gridComponent.setDirty(cellX, cellY)
     }
 
     override fun read(properties: Properties) {

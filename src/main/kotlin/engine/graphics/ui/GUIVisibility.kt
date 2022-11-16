@@ -1,6 +1,7 @@
 package engine.graphics.ui
 
 import com.cozmicgames.utils.collections.PriorityList
+import com.cozmicgames.utils.maths.Vector2
 
 /**
  * Reports if a point is contained within any area of bounds.
@@ -15,7 +16,9 @@ class GUIVisibility {
         }
     }
 
-    private val nodes = PriorityList<Node>()
+    private val nodesInternal = PriorityList<Node>()
+
+    val nodes get() = nodesInternal.asIterable()
 
     private var minX = Float.MAX_VALUE
     private var minY = Float.MAX_VALUE
@@ -23,7 +26,7 @@ class GUIVisibility {
     private var maxY = -Float.MAX_VALUE
 
     fun add(x: Float, y: Float, width: Float, height: Float) {
-        nodes.add(Node(x, y, width, height))
+        nodesInternal.add(Node(x, y, width, height))
 
         if (x < minX)
             minX = x
@@ -38,14 +41,16 @@ class GUIVisibility {
             maxY = y + height
     }
 
+    operator fun contains(point: Vector2) = contains(point.x, point.y)
+
     fun contains(x: Float, y: Float): Boolean {
-        if (nodes.isEmpty())
+        if (nodesInternal.isEmpty())
             return false
 
         if (x < minX || x > maxX || y < minY || y > maxY)
             return false
 
-        for (node in nodes) {
+        for (node in nodesInternal) {
             if (x < node.x)
                 return false
 
@@ -57,7 +62,7 @@ class GUIVisibility {
     }
 
     fun reset() {
-        nodes.clear()
+        nodesInternal.clear()
         minX = 0.0f
         minY = 0.0f
         maxX = 0.0f

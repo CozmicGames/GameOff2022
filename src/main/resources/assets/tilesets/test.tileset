@@ -15,6 +15,10 @@
                     "type": "FLOAT",
                     "value": 1.0
                 },
+                "type": {
+                    "type": "STRING",
+                    "value": "SIMPLE"
+                },
                 "height": {
                     "type": "FLOAT",
                     "value": 1.0
