@@ -128,6 +128,11 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
     private var currentLayerIndex = 0
 
     /**
+     * If set to false, globally disables interaction by always returning an emtpy bitfield on [getState].
+     */
+    var isInteractionEnabled = true
+
+    /**
      * The last element that was added to the GUI.
      */
     var lastElement: GUIElement? = null
@@ -495,6 +500,9 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
      * @return The state of the area as a bitfield.
      */
     fun getState(rectangle: Rectangle, behaviour: ButtonBehaviour = ButtonBehaviour.NONE): Int {
+        if (!isInteractionEnabled)
+            return 0
+
         var state = 0
 
         for (layerIndex in layers.indices.reversed()) {

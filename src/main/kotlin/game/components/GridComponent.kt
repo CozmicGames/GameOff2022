@@ -47,8 +47,6 @@ class GridComponent : Component(), Updateable {
             findCellComponents(gameObject)
 
             batches.forEach { (material, list) ->
-                println(material)
-
                 val drawable = buildDrawable(material, layer) {
                     var currentIndex = 0
 

@@ -4,7 +4,7 @@ import com.cozmicgames.utils.Disposable
 import com.cozmicgames.utils.Time
 import java.util.concurrent.Executors
 
-class ActionContext() : Disposable {
+class ActionContext : Disposable {
     open class Runner(private var action: Action) {
         fun update(delta: Float): Boolean {
             action.update(delta)

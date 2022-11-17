@@ -1,4 +1,4 @@
-package engine.graphics.render.present
+package engine.graphics.rendergraph.present
 
 import com.cozmicgames.Kore
 import com.cozmicgames.graphics
@@ -8,8 +8,8 @@ import com.cozmicgames.graphics.gpu.pipeline.PipelineDefinition
 import com.cozmicgames.graphics.gpu.update
 import com.cozmicgames.utils.Color
 import com.cozmicgames.utils.Disposable
-import engine.graphics.render.RenderFunction
-import engine.graphics.render.colorRenderTargetDependency
+import engine.graphics.rendergraph.RenderFunction
+import engine.graphics.rendergraph.colorRenderTargetDependency
 
 abstract class PresentFunction(effectSource: String, dependencyName: String, dependencyIndex: Int) : RenderFunction(), Disposable {
     private val colorInput = colorRenderTargetDependency(dependencyName, dependencyIndex)

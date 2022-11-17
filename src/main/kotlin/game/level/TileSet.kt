@@ -1,6 +1,7 @@
 package game.level
 
 import com.cozmicgames.utils.Properties
+import com.cozmicgames.utils.UUID
 import com.cozmicgames.utils.extensions.enumValueOfOrNull
 import game.components.GridComponent
 import game.components.getCellType
@@ -29,7 +30,7 @@ class TileSet {
     }
 
     class SimpleTileType : TileType(Type.SIMPLE) {
-        var material = "<missing>"
+        var material = "assets/materials/empty_tiletype.material"
 
         override val defaultMaterial get() = material
 
@@ -62,7 +63,7 @@ class TileSet {
         }
 
         class Rule {
-            var material = "<missing>"
+            var material = "assets/materials/empty_tiletype.material"
 
             var dependencyTopLeft: Dependency? = null
             var dependencyTopCenter: Dependency? = null
@@ -134,7 +135,7 @@ class TileSet {
             }
         }
 
-        override var defaultMaterial = "<missing>"
+        override var defaultMaterial = "assets/materials/empty_tiletype.material"
 
         private val rulesInternal = arrayListOf<Rule>()
 
@@ -234,11 +235,17 @@ class TileSet {
 
     private val types = hashMapOf<String, TileType>()
 
-    val names get() = types.keys.asIterable()
+    val ids get() = types.keys.asIterable()
 
-    operator fun get(name: String) = types[name] ?: MISSING_TILETYPE
+    operator fun get(id: String) = types[id] ?: MISSING_TILETYPE
 
-    operator fun contains(name: String) = name in types
+    operator fun contains(id: String) = id in types
+
+    fun addType(): String {
+        val id = UUID.randomUUID().toString()
+        this[id] = SimpleTileType()
+        return id
+    }
 
     operator fun set(name: String, type: TileType) {
         types[name] = type

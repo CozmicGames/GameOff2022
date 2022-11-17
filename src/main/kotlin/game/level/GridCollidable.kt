@@ -1,4 +1,4 @@
-package game.components
+package game.level
 
 import com.cozmicgames.Kore
 import com.cozmicgames.utils.Updateable

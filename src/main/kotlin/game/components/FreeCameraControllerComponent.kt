@@ -7,7 +7,6 @@ import engine.scene.Component
 import engine.scene.components.TransformComponent
 import game.components.CameraComponent
 import kotlin.math.max
-import kotlin.math.min
 
 class FreeCameraControllerComponent : Component(), Updateable {
     var moveActionName = "freecamera_move"
@@ -18,7 +17,12 @@ class FreeCameraControllerComponent : Component(), Updateable {
     var moveSpeed = 60.0f
     var zoomSpeed = 8.0f
 
+    var isEnabled = true
+
     override fun update(delta: Float) {
+        if (!isEnabled)
+            return
+
         val cameraComponent = gameObject.getComponent<CameraComponent>() ?: return
         val transformComponent = gameObject.getComponent<TransformComponent>() ?: return
 
@@ -48,6 +52,7 @@ class FreeCameraControllerComponent : Component(), Updateable {
         properties.getString("zoomActionName")?.let { zoomActionName = it }
         properties.getFloat("moveSpeed")?.let { moveSpeed = it }
         properties.getFloat("zoomSpeed")?.let { zoomSpeed = it }
+        properties.getBoolean("isEnabled")?.let { isEnabled = it }
     }
 
     override fun write(properties: Properties) {
@@ -57,5 +62,6 @@ class FreeCameraControllerComponent : Component(), Updateable {
         properties.setString("zoomActionName", zoomActionName)
         properties.setFloat("moveSpeed", moveSpeed)
         properties.setFloat("zoomSpeed", zoomSpeed)
+        properties.setBoolean("isEnabled", isEnabled)
     }
 }

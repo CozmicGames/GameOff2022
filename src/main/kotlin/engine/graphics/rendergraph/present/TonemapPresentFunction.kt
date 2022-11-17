@@ -1,4 +1,4 @@
-package engine.graphics.render.present
+package engine.graphics.rendergraph.present
 
 class TonemapPresentFunction(type: Type = Type.REINHARD, dependencyName: String, dependencyIndex: Int) : PresentFunction(
     """

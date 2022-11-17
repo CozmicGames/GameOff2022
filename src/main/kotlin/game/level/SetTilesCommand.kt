@@ -2,7 +2,7 @@ package game.level
 
 import com.cozmicgames.utils.collections.Array2D
 
-class SetTilesCommand(region: GridRegion, private val tiles: Array2D<String?>) : LevelEditor.Command {
+class SetTilesCommand(region: GridRegion, private val tiles: Array2D<String?>) : EditorCommandExecutor.Command {
     override val isUndoable get() = true
 
     private val region = region.copy()

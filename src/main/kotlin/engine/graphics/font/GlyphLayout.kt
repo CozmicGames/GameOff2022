@@ -64,7 +64,7 @@ class GlyphLayout() : Iterable<GlyphLayout.Quad> {
         if (bounds != null) {
             val lines = arrayListOf<String>()
             text.lineSequence().forEach {
-                val lineWidth = it.sumBy { font[it].width }
+                val lineWidth = it.sumOf { font[it].width }
 
                 if (lineWidth < bounds.width) {
                     lines += it

@@ -1,4 +1,4 @@
-package engine.graphics.render.present
+package engine.graphics.rendergraph.present
 
 class SimplePresentFunction(dependencyName: String, dependencyIndex: Int) : PresentFunction(
     """

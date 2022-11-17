@@ -5,6 +5,7 @@ import com.cozmicgames.utils.maths.Rectangle
 import engine.scene.Component
 import engine.scene.components.TransformComponent
 import engine.scene.findComponentInParentObjects
+import game.level.GridCollidable
 
 class GridCellComponent : Component(), GridCollidable {
     var cellX = 0

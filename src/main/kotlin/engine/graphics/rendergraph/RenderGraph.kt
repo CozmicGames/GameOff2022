@@ -1,4 +1,4 @@
-package engine.graphics.render
+package engine.graphics.rendergraph
 
 import com.cozmicgames.Kore
 import com.cozmicgames.graphics

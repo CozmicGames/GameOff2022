@@ -209,11 +209,22 @@ class Scene : Disposable {
     }
 }
 
-inline fun <reified T : Component> Scene.findGameObjectsWithComponent(noinline block: (GameObject) -> Unit) = findGameObjectsWithComponent(T::class, block)
+inline fun <reified T : Component> Scene.findGameObjectsWithComponent(block: (GameObject) -> Unit) = findGameObjectsWithComponent(T::class, block)
 
-fun <T : Component> Scene.findGameObjectsWithComponent(type: KClass<T>, block: (GameObject) -> Unit) {
+inline fun <T : Component> Scene.findGameObjectsWithComponent(type: KClass<T>, block: (GameObject) -> Unit) {
     gameObjects.forEach {
         if (it.hasComponent(type))
             block(it)
     }
+}
+
+inline fun <reified T : Component> Scene.findGameObjectByComponent(block: (GameObject) -> Boolean) = findGameObjectByComponent(T::class, block)
+
+inline fun <T : Component> Scene.findGameObjectByComponent(type: KClass<T>, block: (GameObject) -> Boolean): GameObject? {
+    findGameObjectsWithComponent(type) {
+        if (block(it))
+            return it
+    }
+
+    return null
 }
