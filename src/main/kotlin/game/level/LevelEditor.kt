@@ -262,9 +262,11 @@ class LevelEditor(val scene: Scene) {
             }
             ToolType.PICK -> {
                 if (Game.gui.isInteractionEnabled) {
-                    val type = grid.getCellType(tileX, tileY)
-                    if (type != null)
-                        currentType = type
+                    if (Kore.input.isButtonJustDown(MouseButtons.LEFT)) {
+                        val type = grid.getCellType(tileX, tileY)
+                        if (type != null)
+                            currentType = type
+                    }
                 }
             }
             else -> {}
