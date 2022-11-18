@@ -17,7 +17,7 @@ fun GUI.option(option: Int, selectedOption: Int, action: (Int) -> Unit): GUIElem
     val size = skin.elementSize
 
     val rectangle = Rectangle(x, y, size, size)
-    val state = getState(rectangle, GUI.ButtonBehaviour.DEFAULT)
+    val state = getState(rectangle, GUI.TouchBehaviour.ONCE_UP)
 
     currentCommandList.drawCircleFilled(x + size * 0.5f, y + size * 0.5f, size * 0.5f, if (GUI.State.HOVERED in state) skin.hoverColor else skin.normalColor)
     val isClicked = GUI.State.ACTIVE in state

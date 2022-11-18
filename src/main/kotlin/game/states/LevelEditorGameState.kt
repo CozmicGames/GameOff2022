@@ -1,7 +1,6 @@
 package game.states
 
 import com.cozmicgames.Kore
-import com.cozmicgames.ResizeListener
 import com.cozmicgames.graphics
 import com.cozmicgames.utils.Color
 import engine.Game
@@ -40,14 +39,14 @@ class LevelEditorGameState : GameState {
     }
 
     private val scene = Scene()
-    private val editor = LevelEditor(scene)
+    private val LevelEditor = LevelEditor(scene)
+    private val tileTypeEditor = TileTypeEditor()
     private val renderGraph = RenderGraph(SimplePresentFunction(LEVEL_EDITOR_PASS_NAME, 0))
     private var isMenuOpen = false
     private var isTileTypeEditorOpen = false
     private var newPresentSource: String? = null
-    private val resizeListener: ResizeListener = { width, height ->
-        renderGraph.resize(width, height)
-    }
+    private val resizeListener = renderGraph::resize
+    private lateinit var editTileTypeState: LevelEditor.ReturnState.EditTileType
 
     override fun onCreate() {
         scene.addGameObject {
@@ -76,14 +75,14 @@ class LevelEditorGameState : GameState {
                 if (isMenuOpen || isTileTypeEditorOpen)
                     Game.gui.isInteractionEnabled = false
 
-                val returnState = editor.onFrame(delta)
+                val returnState = LevelEditor.onFrame(delta)
 
                 if (isMenuOpen || isTileTypeEditorOpen)
                     Game.gui.isInteractionEnabled = true
 
 
                 if (returnState !is LevelEditor.ReturnState.None)
-                    editor.removeCameraControls()
+                    LevelEditor.removeCameraControls()
 
                 if (returnState is LevelEditor.ReturnState.Menu) {
                     isMenuOpen = true
@@ -92,6 +91,7 @@ class LevelEditorGameState : GameState {
 
                 if (returnState is LevelEditor.ReturnState.EditTileType) {
                     isTileTypeEditorOpen = true
+                    editTileTypeState = returnState
                     setPresentSource(TILETYPE_EDITOR_PASS_NAME)
                 }
             }
@@ -114,14 +114,17 @@ class LevelEditorGameState : GameState {
                 if (isMenuOpen)
                     Game.gui.isInteractionEnabled = false
 
-                Game.gui.group(Color(0xFFF5CCFF.toInt())) {
-                    Game.gui.textButton("Back") {
-                        isTileTypeEditorOpen = false
-                        editor.addCameraControls()
-                        setPresentSource(LEVEL_EDITOR_PASS_NAME)
-                    }
+                val returnState = tileTypeEditor.onFrame(editTileTypeState.tileType, editTileTypeState.tileSet)
+
+                if (returnState is TileTypeEditor.ReturnState.Menu) {
+                    isMenuOpen = true
+                    setPresentSource(MENU_FROM_TILETYPE_EDITOR_PASS_NAME)
                 }
-                Game.gui.end()
+
+                if (returnState is TileTypeEditor.ReturnState.LevelEditor) {
+                    isTileTypeEditorOpen = false
+                    setPresentSource(LEVEL_EDITOR_PASS_NAME)
+                }
 
                 if (isMenuOpen)
                     Game.gui.isInteractionEnabled = true
@@ -180,7 +183,7 @@ class LevelEditorGameState : GameState {
                     if (isTileTypeEditorOpen)
                         TILETYPE_EDITOR_PASS_NAME
                     else {
-                        editor.addCameraControls()
+                        LevelEditor.addCameraControls()
                         LEVEL_EDITOR_PASS_NAME
                     }
                 )

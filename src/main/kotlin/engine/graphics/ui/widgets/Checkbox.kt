@@ -16,7 +16,7 @@ fun GUI.checkBox(isChecked: Boolean, action: (Boolean) -> Unit): GUIElement {
     val size = skin.elementSize
 
     val rectangle = Rectangle(x, y, size, size)
-    val state = getState(rectangle, GUI.ButtonBehaviour.DEFAULT)
+    val state = getState(rectangle, GUI.TouchBehaviour.ONCE_UP)
 
     currentCommandList.drawRectFilled(x, y, size, size, skin.roundedCorners, skin.cornerRounding, if (GUI.State.HOVERED in state) skin.hoverColor else skin.normalColor)
     val isClicked = GUI.State.ACTIVE in state

@@ -32,7 +32,7 @@ fun GUI.colorEdit(color: Color): GUIElement {
         currentCommandList.drawRectMultiColor(rectangle.x + rectangle.width * 0.5f, rectangle.y + rectangle.height * 0.5f, rectangle.width, rectangle.height, Color.WHITE, color, color, Color.WHITE)
         currentCommandList.drawRectMultiColor(rectangle.x + rectangle.width * 0.5f, rectangle.y + rectangle.height * 0.5f, rectangle.width, rectangle.height, Color.CLEAR, Color.CLEAR, Color.BLACK, Color.BLACK)
 
-        var state = getState(rectangle, GUI.ButtonBehaviour.REPEATED)
+        var state = getState(rectangle, GUI.TouchBehaviour.REPEATED)
 
         var crossHairColor = skin.normalColor
         if (GUI.State.HOVERED in state) {
@@ -63,7 +63,7 @@ fun GUI.colorEdit(color: Color): GUIElement {
             currentCommandList.drawRectMultiColor(hueBarX + hueBarWidth * 0.5f, hueBarY + index * hueBarSubHeight + hueBarSubHeight * 0.5f, hueBarWidth, hueBarSubHeight, c0, c0, c1, c1)
         }
 
-        state = getState(rectangle, GUI.ButtonBehaviour.REPEATED)
+        state = getState(rectangle, GUI.TouchBehaviour.REPEATED)
 
         var hueLineColor = skin.normalColor
         if (GUI.State.HOVERED in state) {
@@ -87,7 +87,7 @@ fun GUI.colorEdit(color: Color): GUIElement {
 
         currentCommandList.drawRectMultiColor(alphaBarX + alphaBarWidth * 0.5f, alphaBarY + alphaBarHeight * 0.5f, alphaBarWidth, alphaBarHeight, Color.WHITE, Color.WHITE, Color.BLACK, Color.BLACK)
 
-        state = getState(rectangle, GUI.ButtonBehaviour.REPEATED)
+        state = getState(rectangle, GUI.TouchBehaviour.REPEATED)
 
         var alphaLineColor = skin.normalColor
         if (GUI.State.HOVERED in state) {

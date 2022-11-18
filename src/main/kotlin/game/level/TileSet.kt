@@ -8,44 +8,10 @@ import game.components.getCellType
 
 class TileSet {
     companion object {
-        private val MISSING_TILETYPE = SimpleTileType()
+        private val MISSING_TILETYPE = TileType()
     }
 
-    sealed class TileType(val type: Type) {
-        enum class Type {
-            SIMPLE,
-            RULE
-        }
-
-        var width = 1.0f
-        var height = 1.0f
-
-        abstract val defaultMaterial: String
-
-        abstract fun getMaterial(gridComponent: GridComponent, cellX: Int, cellY: Int): String
-
-        abstract fun read(properties: Properties)
-
-        abstract fun write(properties: Properties)
-    }
-
-    class SimpleTileType : TileType(Type.SIMPLE) {
-        var material = "assets/materials/empty_tiletype.material"
-
-        override val defaultMaterial get() = material
-
-        override fun getMaterial(gridComponent: GridComponent, cellX: Int, cellY: Int) = material
-
-        override fun read(properties: Properties) {
-            properties.getString("material")?.let { material = it }
-        }
-
-        override fun write(properties: Properties) {
-            properties.setString("material", material)
-        }
-    }
-
-    class RuleTileType : TileType(Type.RULE) {
+    class TileType {
         sealed class Dependency(val type: Type) {
             enum class Type {
                 SOLID,
@@ -135,13 +101,18 @@ class TileSet {
             }
         }
 
-        override var defaultMaterial = "assets/materials/empty_tiletype.material"
-
         private val rulesInternal = arrayListOf<Rule>()
 
         val rules get() = ArrayList(rulesInternal).asIterable()
 
-        override fun getMaterial(gridComponent: GridComponent, cellX: Int, cellY: Int): String {
+        var defaultMaterial = "assets/materials/empty_tiletype.material"
+        var width = 1.0f
+        var height = 1.0f
+
+        fun getMaterial(gridComponent: GridComponent, cellX: Int, cellY: Int): String {
+            if (rulesInternal.isEmpty())
+                return defaultMaterial
+
             val tileTypeTopLeft = gridComponent.getCellType(cellX - 1, cellY + 1)
             val tileTypeTopCenter = gridComponent.getCellType(cellX, cellY + 1)
             val tileTypeTopRight = gridComponent.getCellType(cellX + 1, cellY + 1)
@@ -206,7 +177,7 @@ class TileSet {
             rulesInternal -= rule
         }
 
-        override fun read(properties: Properties) {
+        fun read(properties: Properties) {
             rulesInternal.clear()
 
             properties.getString("defaultMaterial")?.let { defaultMaterial = it }
@@ -219,7 +190,7 @@ class TileSet {
             }
         }
 
-        override fun write(properties: Properties) {
+        fun write(properties: Properties) {
             val rulesProperties = arrayListOf<Properties>()
 
             rulesInternal.forEach {
@@ -243,7 +214,7 @@ class TileSet {
 
     fun addType(): String {
         val id = UUID.randomUUID().toString()
-        this[id] = SimpleTileType()
+        this[id] = TileType()
         return id
     }
 
@@ -257,14 +228,7 @@ class TileSet {
         properties.getPropertiesArray("types")?.let {
             for (typeProperties in it) {
                 val name = typeProperties.getString("name") ?: continue
-                val typeName = typeProperties.getString("type") ?: continue
-                val type = enumValueOfOrNull<TileType.Type>(typeName) ?: continue
-
-                val tileType = when (type) {
-                    TileType.Type.SIMPLE -> SimpleTileType()
-                    TileType.Type.RULE -> RuleTileType()
-                }
-
+                val tileType = TileType()
                 tileType.width = typeProperties.getFloat("width") ?: 1.0f
                 tileType.height = typeProperties.getFloat("height") ?: 1.0f
                 tileType.read(typeProperties)
@@ -280,7 +244,6 @@ class TileSet {
             val typeProperties = Properties()
 
             typeProperties.setString("name", name)
-            typeProperties.setString("type", tileType.type.name)
             typeProperties.setFloat("width", tileType.width)
             typeProperties.setFloat("height", tileType.height)
             tileType.write(typeProperties)

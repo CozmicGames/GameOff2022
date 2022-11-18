@@ -71,7 +71,7 @@ private fun GUI.comboboxElement(data: ComboboxData<*>, index: Int, itemWidth: Fl
     val textX = x + skin.elementPadding
     val textY = y + skin.elementPadding
 
-    val state = getState(rectangle, GUI.ButtonBehaviour.DEFAULT)
+    val state = getState(rectangle, GUI.TouchBehaviour.ONCE_UP)
 
     val color = if (GUI.State.ACTIVE in state) {
         data.selectedIndex = index

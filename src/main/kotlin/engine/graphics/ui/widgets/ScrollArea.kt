@@ -106,14 +106,14 @@ fun GUI.scrollArea(maxWidth: Float? = null, maxHeight: Float? = null, scroll: Ve
             this.y = scrollbarY
             this.width = scrollbarWidth
             this.height = scrollbarHeight
-        }, GUI.ButtonBehaviour.NONE)
+        }, GUI.TouchBehaviour.NONE)
 
         val scrollbarGripState = getState(rectangle.apply {
             this.x = scrollbarGripX
             this.y = scrollbarY
             this.width = scrollbarGripWidth
             this.height = scrollbarHeight
-        }, GUI.ButtonBehaviour.REPEATED)
+        }, GUI.TouchBehaviour.REPEATED)
 
         val scrollbarColor = if (GUI.State.HOVERED in scrollbarState) skin.hoverColor else skin.normalColor
 
@@ -146,14 +146,14 @@ fun GUI.scrollArea(maxWidth: Float? = null, maxHeight: Float? = null, scroll: Ve
             this.y = scrollbarY
             this.width = scrollbarWidth
             this.height = scrollbarHeight
-        }, GUI.ButtonBehaviour.NONE)
+        }, GUI.TouchBehaviour.NONE)
 
         val scrollbarGripState = getState(rectangle.apply {
             this.x = scrollbarX
             this.y = scrollbarGripY
             this.width = scrollbarWidth
             this.height = scrollbarGripHeight
-        }, GUI.ButtonBehaviour.REPEATED)
+        }, GUI.TouchBehaviour.REPEATED)
 
         val scrollbarColor = if (GUI.State.HOVERED in scrollbarState) skin.hoverColor else skin.normalColor
 

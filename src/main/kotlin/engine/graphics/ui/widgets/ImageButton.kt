@@ -24,7 +24,7 @@ fun GUI.imageButton(texture: TextureRegion, width: Float = skin.elementSize, hei
     rectangle.width = width
     rectangle.height = height
 
-    val state = getState(rectangle, GUI.ButtonBehaviour.DEFAULT)
+    val state = getState(rectangle, GUI.TouchBehaviour.ONCE_UP)
 
     val color = if (GUI.State.ACTIVE in state) {
         action()

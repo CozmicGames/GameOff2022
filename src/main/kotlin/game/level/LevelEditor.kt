@@ -31,17 +31,12 @@ import kotlin.math.ceil
 import kotlin.math.floor
 
 class LevelEditor(val scene: Scene) {
-    private companion object {
-        const val TOOL_IMAGE_SIZE = 40.0f
-        val PANEL_BACKGROUND_COLOR = Color(0x575B5BFF)
-    }
-
     sealed interface ReturnState {
         object None : ReturnState
 
         object Menu : ReturnState
 
-        class EditTileType(val tileType: TileSet.TileType) : ReturnState
+        class EditTileType(val tileType: String, val tileSet: String) : ReturnState
     }
 
     private enum class ToolType(val texture: String) {
@@ -274,32 +269,32 @@ class LevelEditor(val scene: Scene) {
     }
 
     fun drawToolSelection(setReturnState: (ReturnState) -> Unit) {
-        Game.gui.setLastElement(Game.gui.absolute(Kore.graphics.width - TOOL_IMAGE_SIZE, 0.0f))
-        Game.gui.group(PANEL_BACKGROUND_COLOR) {
+        Game.gui.setLastElement(Game.gui.absolute(Kore.graphics.width - Game.editorStyle.toolImageSize, 0.0f))
+        Game.gui.group(Game.editorStyle.panelBackgroundColor) {
             ToolType.values().forEach {
                 val texture = Game.textures[it.texture] ?: Game.graphics2d.missingTexture.asRegion()
                 when (it) {
-                    ToolType.FILL -> Game.gui.imageButton(texture, TOOL_IMAGE_SIZE, TOOL_IMAGE_SIZE) {
+                    ToolType.FILL -> Game.gui.imageButton(texture, Game.editorStyle.toolImageSize, Game.editorStyle.toolImageSize) {
                         selectionRegion?.let {
                             commandExecutor.setTileTypes(it, currentType)
                         }
                     }
-                    ToolType.UNDO -> Game.gui.imageButton(texture, TOOL_IMAGE_SIZE, TOOL_IMAGE_SIZE) {
+                    ToolType.UNDO -> Game.gui.imageButton(texture, Game.editorStyle.toolImageSize, Game.editorStyle.toolImageSize) {
                         commandExecutor.undo()
                     }
-                    ToolType.REDO -> Game.gui.imageButton(texture, TOOL_IMAGE_SIZE, TOOL_IMAGE_SIZE) {
+                    ToolType.REDO -> Game.gui.imageButton(texture, Game.editorStyle.toolImageSize, Game.editorStyle.toolImageSize) {
                         commandExecutor.redo()
                     }
-                    ToolType.COPY -> Game.gui.imageButton(texture, TOOL_IMAGE_SIZE, TOOL_IMAGE_SIZE) {
+                    ToolType.COPY -> Game.gui.imageButton(texture, Game.editorStyle.toolImageSize, Game.editorStyle.toolImageSize) {
                         copySelection()
                     }
-                    ToolType.PASTE -> Game.gui.imageButton(texture, TOOL_IMAGE_SIZE, TOOL_IMAGE_SIZE) {
+                    ToolType.PASTE -> Game.gui.imageButton(texture, Game.editorStyle.toolImageSize, Game.editorStyle.toolImageSize) {
                         pasteSelection()
                     }
-                    ToolType.SETTINGS -> Game.gui.imageButton(texture, TOOL_IMAGE_SIZE, TOOL_IMAGE_SIZE) {
+                    ToolType.SETTINGS -> Game.gui.imageButton(texture, Game.editorStyle.toolImageSize, Game.editorStyle.toolImageSize) {
                         setReturnState(ReturnState.Menu)
                     }
-                    else -> Game.gui.selectableImage(texture, TOOL_IMAGE_SIZE, TOOL_IMAGE_SIZE, currentTool == it) {
+                    else -> Game.gui.selectableImage(texture, Game.editorStyle.toolImageSize, Game.editorStyle.toolImageSize, currentTool == it) {
                         selectionRegion = null
                         currentTool = it
                     }
@@ -310,7 +305,7 @@ class LevelEditor(val scene: Scene) {
 
     fun drawCoordinateInfoLine(grid: GridComponent, camera: OrthographicCamera) {
         Game.gui.setLastElement(Game.gui.absolute(0.0f, Kore.graphics.height - Game.gui.skin.elementSize))
-        Game.gui.group(PANEL_BACKGROUND_COLOR) {
+        Game.gui.group(Game.editorStyle.panelBackgroundColor) {
             Game.gui.sameLine {
                 val (worldX, worldY, _) = camera.unproject(Kore.input.x.toFloat(), Kore.input.y.toFloat())
 
@@ -334,8 +329,8 @@ class LevelEditor(val scene: Scene) {
 
     fun drawTypeSelection(grid: GridComponent, setReturnState: (ReturnState) -> Unit) {
         Game.gui.setLastElement(Game.gui.absolute(0.0f, 0.0f))
-        Game.gui.group(PANEL_BACKGROUND_COLOR) {
-            Game.gui.scrollArea(TOOL_IMAGE_SIZE * 5f, scroll = scrollAmount) {
+        Game.gui.group(Game.editorStyle.panelBackgroundColor) {
+            Game.gui.scrollArea(Game.editorStyle.toolImageSize * 5f, scroll = scrollAmount) {
                 val tileSet = Game.tileSets[grid.tileSet]
 
                 for (name in tileSet.ids) {
@@ -347,10 +342,10 @@ class LevelEditor(val scene: Scene) {
 
                     Game.gui.transient {
                         Game.gui.layerUp {
-                            val editTextureSize = TOOL_IMAGE_SIZE * 1.0f / 3.0f
-                            Game.gui.offset(TOOL_IMAGE_SIZE - editTextureSize * 1.25f, editTextureSize * 0.25f) {
+                            val editTextureSize = Game.editorStyle.toolImageSize * 1.0f / 3.0f
+                            Game.gui.offset(Game.editorStyle.toolImageSize - editTextureSize * 1.25f, editTextureSize * 0.25f) {
                                 Game.gui.imageButton(Game.textures["assets/images/edit_tiletype.png"] ?: Game.graphics2d.missingTexture.asRegion(), editTextureSize, editTextureSize) {
-                                    setReturnState(ReturnState.EditTileType(tileType))
+                                    setReturnState(ReturnState.EditTileType(name, grid.tileSet))
                                 }
                             }
                         }
@@ -358,12 +353,12 @@ class LevelEditor(val scene: Scene) {
 
                     val texture = Game.textures[Game.materials[tileType.defaultMaterial]?.colorTexturePath ?: "<missing>"] ?: Game.graphics2d.missingTexture.asRegion()
 
-                    Game.gui.selectableImage(texture, TOOL_IMAGE_SIZE, TOOL_IMAGE_SIZE, isSelected) {
+                    Game.gui.selectableImage(texture, Game.editorStyle.toolImageSize, Game.editorStyle.toolImageSize, isSelected) {
                         currentType = name
                     }
                 }
 
-                Game.gui.plusButton(TOOL_IMAGE_SIZE, TOOL_IMAGE_SIZE) {
+                Game.gui.plusButton(Game.editorStyle.toolImageSize, Game.editorStyle.toolImageSize) {
                     tileSet.addType()
                 }
             }

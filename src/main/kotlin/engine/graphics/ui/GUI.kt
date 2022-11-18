@@ -1,5 +1,6 @@
 package engine.graphics.ui
 
+import com.cozmicgames.DropListener
 import com.cozmicgames.Kore
 import com.cozmicgames.graphics
 import com.cozmicgames.graphics.safeHeight
@@ -80,12 +81,14 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
     /**
      * Describes which behaviour an element has.
      * NONE: The element has no behaviour.
-     * DEFAULT: The element is active once on interaction.
+     * ONCE_DOWN: The element is active once on touch down.
+     * ONCE_UP: The element is active once on touch up.
      * REPEATED: The element is active as long as it is interacted with.
      */
-    enum class ButtonBehaviour {
+    enum class TouchBehaviour {
         NONE,
-        DEFAULT,
+        ONCE_DOWN,
+        ONCE_UP,
         REPEATED
     }
 
@@ -107,6 +110,9 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
     private var lineHeight = 0.0f
     private var tooltipCounter = 0.0f
     private var lastTime = Time.current
+    private var addToLayer = true
+    private var lastUpdatedFrame = -1
+    private var droppedTimeCounter = 0.0f
 
     private val inputListener = object : InputListener {
         override fun onKey(key: Key, down: Boolean, time: Double) {
@@ -122,6 +128,11 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
             currentScrollAmount.x -= x * skin.scrollSpeed
             currentScrollAmount.y -= y * skin.scrollSpeed
         }
+    }
+
+    private val dropListener: DropListener = {
+        externalDroppedElements += it
+        externalDropLocation.set(touchPosition)
     }
 
     private val layers = arrayListOf<GUILayer>()
@@ -172,6 +183,21 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
     var currentComboBoxData: ComboboxData<*>? = null
 
     /**
+     * The current drag and drop data, if one is present.
+     */
+    var currentDragDropData: DragDropData<*>? = null
+
+    /**
+     * The elements dropped by [DropListener].
+     */
+    var externalDroppedElements = arrayListOf<String>()
+
+    /**
+     * The location of the externally dropped elements.
+     */
+    val externalDropLocation = Vector2()
+
+    /**
      * The current touch position.
      */
     val touchPosition = Vector2()
@@ -200,6 +226,8 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
 
     init {
         Kore.input.addListener(inputListener)
+        Kore.addDropListener(dropListener)
+
         layers.add(GUILayer())
         currentCommandList = currentLayer.commands
     }
@@ -345,7 +373,8 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
      * @return The element.
      */
     fun setLastElement(element: GUIElement): GUIElement {
-        currentLayer.addElement(element)
+        if (addToLayer)
+            currentLayer.addElement(element)
 
         lineHeight = if (isSameLine)
             max(lineHeight, element.height)
@@ -462,11 +491,26 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
     /**
      * Performs a block of code and resetting the last element afterwards.
      *
+     * @param ignoreGroup If set to true, the current group, if set, won't be changed by [block].
+     * @param addToLayer If set to false, no visibility data will be added by [block].
      * @param block The block to execute.
      */
-    fun transient(block: () -> Unit): GUIElement {
+    fun transient(ignoreGroup: Boolean = false, addToLayer: Boolean = true, block: () -> Unit): GUIElement {
         val lastElement = getLastElement()
+        val previousGroup = currentGroup
+        val previousAddToLayer = this.addToLayer
+
+        if (ignoreGroup)
+            currentGroup = null
+
+        if (addToLayer != this.addToLayer)
+            this.addToLayer = addToLayer
+
         block()
+
+        currentGroup = previousGroup
+        this.addToLayer = previousAddToLayer
+
         return setLastElement(lastElement)
     }
 
@@ -492,38 +536,68 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
     }
 
     /**
+     * Checks if [position] is visible for current layer.
+     *
+     * @param position The position to check.
+     *
+     * @return Whether the position is visible.
+     */
+    fun isPositionVisible(position: Vector2): Boolean {
+        for (layerIndex in layers.indices.reversed()) {
+            if (layerIndex == currentLayerIndex)
+                break
+
+            if (layers[layerIndex].contains(position.x, position.y))
+                return false
+        }
+
+        return true
+    }
+
+    /**
+     * Checks if [position] is inside the current scissor rect.
+     *
+     * @param position The position to check.
+     *
+     * @return Whether the position is inside.
+     */
+    fun isPositionInsideCurrentScissorRect(position: Vector2): Boolean {
+        currentScissorRectangle?.let {
+            if (position !in it)
+                return false
+        }
+
+        return true
+    }
+
+    /**
      * Gets the state of the area covered by [rectangle] with the given [behaviour].
      *
      * @param rectangle The rectangle.
-     * @param behaviour The behaviour. Defaults to [ButtonBehaviour.NONE].
+     * @param behaviour The behaviour. Defaults to [TouchBehaviour.NONE].
+     * @param checkVisibility Whether to check for visibility. If set to false, other overlapping elements will be ignored.
      *
      * @return The state of the area as a bitfield.
      */
-    fun getState(rectangle: Rectangle, behaviour: ButtonBehaviour = ButtonBehaviour.NONE): Int {
+    fun getState(rectangle: Rectangle, behaviour: TouchBehaviour = TouchBehaviour.NONE, checkVisibility: Boolean = true): Int {
         if (!isInteractionEnabled)
             return 0
 
         var state = 0
 
-        for (layerIndex in layers.indices.reversed()) {
-            if (layerIndex == currentLayerIndex)
-                break
+        if (checkVisibility && !isPositionVisible(touchPosition))
+            return state
 
-            if (layers[layerIndex].contains(touchPosition.x, touchPosition.y))
-                return state
-        }
-
-        currentScissorRectangle?.let {
-            if (touchPosition !in it || !(it intersects rectangle))
-                return state
-        }
+        if (!isPositionInsideCurrentScissorRect(touchPosition))
+            return state
 
         if (touchPosition in rectangle) {
             state += State.HOVERED
 
             when (behaviour) {
-                ButtonBehaviour.DEFAULT -> if (Kore.input.justTouchedUp) state += State.ACTIVE
-                ButtonBehaviour.REPEATED -> if (Kore.input.isTouched) state += State.ACTIVE
+                TouchBehaviour.ONCE_DOWN -> if (Kore.input.justTouchedDown) state += State.ACTIVE
+                TouchBehaviour.ONCE_UP -> if (Kore.input.justTouchedUp) state += State.ACTIVE
+                TouchBehaviour.REPEATED -> if (Kore.input.isTouched) state += State.ACTIVE
                 else -> {}
             }
 
@@ -591,6 +665,28 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
     }
 
     /**
+     * Returns an [GUIElement] instance containing the size of the element returned by [block].
+     *
+     * @param block The block to execute to retrieve the element.
+     */
+    fun getElementSize(block: () -> GUIElement): GUIElement {
+        val previousIsInteractionEnabled = isInteractionEnabled
+        val previousCommandList = currentCommandList
+        val previousLastElement = getLastElement()
+
+        isInteractionEnabled = false
+        currentCommandList = GUICommandList()
+
+        val result = block()
+
+        isInteractionEnabled = previousIsInteractionEnabled
+        currentCommandList = previousCommandList
+        setLastElement(previousLastElement)
+
+        return result
+    }
+
+    /**
      * Begin GUI rendering.
      * This must be called before any widget function.
      */
@@ -628,9 +724,26 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
      * It will also reset the command list.
      */
     fun end() {
-        currentScrollAmount.mul(0.9f)
-        if (currentScrollAmount.lengthSquared > 0.01f)
-            currentScrollAmount.setZero()
+        if (lastUpdatedFrame != Kore.graphics.statistics.numFrames) {
+            currentScrollAmount.mul(0.9f)
+            if (currentScrollAmount.lengthSquared > 0.01f)
+                currentScrollAmount.setZero()
+
+            if (Kore.input.justTouchedUp)
+                Kore.onNextFrame {
+                    currentDragDropData = null
+                }
+
+            if (externalDroppedElements.isNotEmpty()) {
+                droppedTimeCounter += Kore.graphics.statistics.frameTime
+
+                if (droppedTimeCounter >= 1.0f)
+                    externalDroppedElements.clear()
+            } else
+                droppedTimeCounter = 0.0f
+
+            lastUpdatedFrame = Kore.graphics.statistics.numFrames
+        }
 
         transform.setToOrtho2D(Kore.graphics.safeInsetLeft.toFloat(), Kore.graphics.safeWidth.toFloat(), Kore.graphics.safeHeight.toFloat(), Kore.graphics.safeInsetTop.toFloat())
 
@@ -651,6 +764,7 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
      */
     override fun dispose() {
         Kore.input.removeListener(inputListener)
+        Kore.removeDropListener(dropListener)
         drawableFont.dispose()
     }
 }

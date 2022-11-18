@@ -25,7 +25,7 @@ fun GUI.dropdown(title: String, isOpen: Boolean, minWidth: Float? = null, action
     rectangle.width = width
     rectangle.height = height
 
-    val state = getState(rectangle, GUI.ButtonBehaviour.DEFAULT)
+    val state = getState(rectangle, GUI.TouchBehaviour.ONCE_UP)
 
     val color = if (GUI.State.ACTIVE in state)
         skin.highlightColor

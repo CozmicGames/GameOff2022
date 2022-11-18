@@ -3,21 +3,22 @@
         "type": "PROPERTIES",
         "array": [
             {
-                "material": {
+                "defaultMaterial": {
                     "type": "STRING",
-                    "value": "<missing>"
+                    "value": "assets/materials/test_tile.material"
                 },
                 "name": {
                     "type": "STRING",
-                    "value": "test"
+                    "value": "xt1j8p3muq1wbjdc"
                 },
                 "width": {
                     "type": "FLOAT",
                     "value": 1.0
                 },
-                "type": {
-                    "type": "STRING",
-                    "value": "SIMPLE"
+                "rules": {
+                    "type": "PROPERTIES",
+                    "array": [
+                    ]
                 },
                 "height": {
                     "type": "FLOAT",

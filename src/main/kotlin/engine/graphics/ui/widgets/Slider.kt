@@ -34,7 +34,7 @@ fun GUI.slider(amount: Float, width: Float = skin.elementSize * 10.0f, action: (
     rectangle.width = width
     rectangle.height = skin.elementSize
 
-    val state = getState(rectangle, GUI.ButtonBehaviour.REPEATED)
+    val state = getState(rectangle, GUI.TouchBehaviour.REPEATED)
 
     if (GUI.State.HOVERED in state) {
         val color = if (GUI.State.ACTIVE in state) {

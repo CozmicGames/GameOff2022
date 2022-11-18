@@ -27,7 +27,7 @@ fun GUI.textButton(text: String, action: () -> Unit): GUIElement {
     rectangle.width = layout.width + skin.elementPadding * 2.0f
     rectangle.height = layout.height + skin.elementPadding * 2.0f
 
-    val state = getState(rectangle, GUI.ButtonBehaviour.DEFAULT)
+    val state = getState(rectangle, GUI.TouchBehaviour.ONCE_UP)
 
     val color = if (GUI.State.ACTIVE in state) {
         action()

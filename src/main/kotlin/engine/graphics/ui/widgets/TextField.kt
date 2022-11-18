@@ -28,7 +28,7 @@ fun GUI.textField(textData: TextData, minWidth: Float = skin.elementSize, action
     rectangle.width = max(layout.width, minWidth) + skin.elementPadding * 2.0f
     rectangle.height = layout.height + skin.elementPadding * 2.0f
 
-    val state = getState(rectangle, GUI.ButtonBehaviour.REPEATED)
+    val state = getState(rectangle, GUI.TouchBehaviour.REPEATED)
 
     if (GUI.State.HOVERED in state && GUI.State.ACTIVE in state) {
         currentTextData = textData

@@ -16,7 +16,7 @@ fun GUI.plusButton(width: Float = skin.elementSize, height: Float = skin.element
     rectangle.width = width
     rectangle.height = height
 
-    val state = getState(rectangle, GUI.ButtonBehaviour.DEFAULT)
+    val state = getState(rectangle, GUI.TouchBehaviour.ONCE_UP)
     val plusThickness = min(width, height) * 0.2f
     val borderSize = min(width, height) / skin.elementSize
 
@@ -44,7 +44,7 @@ fun GUI.minusButton(width: Float = skin.elementSize, height: Float = skin.elemen
     rectangle.width = width
     rectangle.height = height
 
-    val state = getState(rectangle, GUI.ButtonBehaviour.DEFAULT)
+    val state = getState(rectangle, GUI.TouchBehaviour.ONCE_UP)
     val plusThickness = min(width, height) * 0.2f
     val borderSize = min(width, height) / skin.elementSize
 

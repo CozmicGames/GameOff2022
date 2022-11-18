@@ -26,7 +26,7 @@ fun GUI.selectableImage(texture: TextureRegion, width: Float = skin.elementSize,
     rectangle.width = width
     rectangle.height = height
 
-    val state = getState(rectangle, GUI.ButtonBehaviour.DEFAULT)
+    val state = getState(rectangle, GUI.TouchBehaviour.ONCE_UP)
 
     currentCommandList.drawImage(x, y, width, height, texture, Color.WHITE)
 
