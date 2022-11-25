@@ -17,13 +17,15 @@ class TextureManager : Disposable {
                 add(fileHandle, filter)
         }
 
-        operator fun getValue(thisRef: Any, property: KProperty<*>) = get(fileHandle) ?: Game.graphics2d.missingTexture.asRegion()
+        operator fun getValue(thisRef: Any, property: KProperty<*>) = get(fileHandle)
     }
 
     data class TextureKey(val filter: Texture.Filter)
 
     private val textures = hashMapOf<TextureKey, TextureAtlas>()
     private val keys = hashMapOf<String, TextureKey>()
+
+    val names get() = keys.keys.toList()
 
     fun add(fileHandle: FileHandle, filter: Texture.Filter = Texture.Filter.NEAREST) {
         val image = if (fileHandle.exists)
@@ -61,22 +63,27 @@ class TextureManager : Disposable {
 
     operator fun get(fileHandle: FileHandle) = get(fileHandle.fullPath)
 
-    operator fun get(name: String): TextureRegion? {
-        val key = keys[name] ?: return null
-        val texture = textures[key] ?: return null
-        return texture[name]
+    operator fun get(name: String): TextureRegion {
+        val returnMissing = {
+            Kore.log.error(this::class, "Couldn't find texture '$name', using missing texture instead.")
+            Game.graphics2d.missingTexture.asRegion()
+        }
+
+        val key = keys[name] ?: return returnMissing()
+        val texture = textures[key] ?: return returnMissing()
+        return texture[name] ?: returnMissing()
     }
 
     fun getOrAdd(fileHandle: FileHandle, filter: Texture.Filter = Texture.Filter.NEAREST): TextureRegion {
         if (fileHandle !in this)
             add(fileHandle, filter)
 
-        return this[fileHandle] ?: Game.graphics2d.missingTexture.asRegion()
+        return this[fileHandle]
     }
 
     fun getAtlas(key: TextureKey): TextureAtlas {
         return textures.getOrPut(key) {
-            when(key.filter) {
+            when (key.filter) {
                 Texture.Filter.NEAREST -> TextureAtlas(sampler = Game.graphics2d.pointClampSampler)
                 Texture.Filter.LINEAR -> TextureAtlas(sampler = Game.graphics2d.linearClampSampler)
             }

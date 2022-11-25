@@ -16,7 +16,7 @@ fun GUI.dropdown(title: String, isOpen: Boolean, minWidth: Float? = null, action
     val width = if (minWidth == null) requiredWidth else max(requiredWidth, minWidth)
     val height = layout.height + skin.elementPadding * 2.0f
 
-    val dropdownX = width - skin.elementPadding - skin.contentSize
+    val dropdownX = x + width - skin.elementPadding - skin.contentSize
     val dropDownY = y + skin.elementPadding
 
     val rectangle = Rectangle()

@@ -15,10 +15,7 @@ import engine.graphics.asRegion
 import engine.graphics.drawPathStroke
 import engine.graphics.drawRect
 import engine.graphics.ui.GUIVisibility
-import engine.graphics.ui.widgets.imageButton
-import engine.graphics.ui.widgets.label
-import engine.graphics.ui.widgets.scrollArea
-import engine.graphics.ui.widgets.selectableImage
+import engine.graphics.ui.widgets.*
 import engine.scene.Scene
 import engine.scene.findGameObjectByComponent
 import engine.scene.findGameObjectsWithComponent
@@ -159,7 +156,7 @@ class LevelEditor(val scene: Scene) {
     }
 
     private fun drawBackground(grid: GridComponent, camera: OrthographicCamera) {
-        val backgroundTexture = Game.textures["assets/images/grid_background_8x8.png"] ?: Game.graphics2d.missingTexture.asRegion()
+        val backgroundTexture = Game.textures["assets/images/grid_background_8x8.png"]
 
         val backgroundTileWidth = 8 * grid.cellSize
         val backgroundTileHeight = 8 * grid.cellSize
@@ -270,9 +267,9 @@ class LevelEditor(val scene: Scene) {
 
     fun drawToolSelection(setReturnState: (ReturnState) -> Unit) {
         Game.gui.setLastElement(Game.gui.absolute(Kore.graphics.width - Game.editorStyle.toolImageSize, 0.0f))
-        Game.gui.group(Game.editorStyle.panelBackgroundColor) {
+        Game.gui.group(Game.editorStyle.panelContentBackgroundColor) {
             ToolType.values().forEach {
-                val texture = Game.textures[it.texture] ?: Game.graphics2d.missingTexture.asRegion()
+                val texture = Game.textures[it.texture]
                 when (it) {
                     ToolType.FILL -> Game.gui.imageButton(texture, Game.editorStyle.toolImageSize, Game.editorStyle.toolImageSize) {
                         selectionRegion?.let {
@@ -305,7 +302,7 @@ class LevelEditor(val scene: Scene) {
 
     fun drawCoordinateInfoLine(grid: GridComponent, camera: OrthographicCamera) {
         Game.gui.setLastElement(Game.gui.absolute(0.0f, Kore.graphics.height - Game.gui.skin.elementSize))
-        Game.gui.group(Game.editorStyle.panelBackgroundColor) {
+        Game.gui.group(Game.editorStyle.panelContentBackgroundColor) {
             Game.gui.sameLine {
                 val (worldX, worldY, _) = camera.unproject(Kore.input.x.toFloat(), Kore.input.y.toFloat())
 
@@ -329,7 +326,12 @@ class LevelEditor(val scene: Scene) {
 
     fun drawTypeSelection(grid: GridComponent, setReturnState: (ReturnState) -> Unit) {
         Game.gui.setLastElement(Game.gui.absolute(0.0f, 0.0f))
-        Game.gui.group(Game.editorStyle.panelBackgroundColor) {
+        //Game.gui.panel(Game.editorStyle.toolImageSize * 5f, 50.0f, scrollAmount, Game.editorStyle.panelContentBackgroundColor, Game.editorStyle.panelTitleBackgroundColor, {
+        //    Game.gui.label("Tile Types")
+        //}) {
+        //} //TODO:
+
+        Game.gui.group(Game.editorStyle.panelContentBackgroundColor) {
             Game.gui.scrollArea(Game.editorStyle.toolImageSize * 5f, scroll = scrollAmount) {
                 val tileSet = Game.tileSets[grid.tileSet]
 
@@ -344,14 +346,14 @@ class LevelEditor(val scene: Scene) {
                         Game.gui.layerUp {
                             val editTextureSize = Game.editorStyle.toolImageSize * 1.0f / 3.0f
                             Game.gui.offset(Game.editorStyle.toolImageSize - editTextureSize * 1.25f, editTextureSize * 0.25f) {
-                                Game.gui.imageButton(Game.textures["assets/images/edit_tiletype.png"] ?: Game.graphics2d.missingTexture.asRegion(), editTextureSize, editTextureSize) {
+                                Game.gui.imageButton(Game.textures["assets/images/edit_tiletype.png"], editTextureSize, editTextureSize) {
                                     setReturnState(ReturnState.EditTileType(name, grid.tileSet))
                                 }
                             }
                         }
                     }
 
-                    val texture = Game.textures[Game.materials[tileType.defaultMaterial]?.colorTexturePath ?: "<missing>"] ?: Game.graphics2d.missingTexture.asRegion()
+                    val texture = Game.textures[Game.materials[tileType.defaultMaterial]?.colorTexturePath ?: "<missing>"]
 
                     Game.gui.selectableImage(texture, Game.editorStyle.toolImageSize, Game.editorStyle.toolImageSize, isSelected) {
                         currentType = name

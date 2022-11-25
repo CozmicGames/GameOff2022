@@ -13,6 +13,8 @@ class MaterialManager {
 
     private val materials = hashMapOf<String, Material>()
 
+    val names get() = materials.keys.toList()
+
     fun add(file: FileHandle) {
         if (!file.exists) {
             Kore.log.error(this::class, "Material file not found: $file")

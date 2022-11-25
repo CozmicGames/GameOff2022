@@ -15,6 +15,8 @@ class ShaderManager : Disposable {
 
     private val shaders = hashMapOf<String, Shader>()
 
+    val names get() = shaders.keys.toList()
+
     init {
         add("default", DefaultShader)
     }

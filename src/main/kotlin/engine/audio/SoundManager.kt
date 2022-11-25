@@ -15,6 +15,8 @@ class SoundManager : Disposable {
 
     private val sounds = hashMapOf<String, Sound>()
 
+    val names get() = sounds.keys.toList()
+
     fun add(file: FileHandle) {
         if (!file.exists) {
             Kore.log.error(this::class, "Sound file not found: $file")

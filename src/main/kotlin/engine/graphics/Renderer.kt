@@ -11,6 +11,7 @@ import com.cozmicgames.utils.Disposable
 import com.cozmicgames.utils.collections.DynamicStack
 import com.cozmicgames.utils.maths.Camera
 import com.cozmicgames.utils.maths.Matrix4x4
+import com.cozmicgames.utils.maths.Rectangle
 import com.cozmicgames.utils.maths.VectorPath
 import engine.Game
 import engine.graphics.font.GlyphLayout
@@ -198,6 +199,17 @@ class Renderer(graphics: Graphics2D) : Disposable {
         }
     }
 
+    fun drawGlyphsClipped(glyphLayout: GlyphLayout, x: Float, y: Float, clipRect: Rectangle, color: Color = Color.WHITE) {
+        require(isActive)
+
+        val shader = Game.shaders[glyphLayout.font.requiredShader] ?: DefaultShader
+
+        withShader(shader) {
+            this.texture = glyphLayout.font.texture
+            context.drawGlyphsClipped(glyphLayout, x, y, clipRect, color)
+        }
+    }
+
     fun drawTriangle(x0: Float, y0: Float, x1: Float, y1: Float, x2: Float, y2: Float, color0: Color, color1: Color = color0, color2: Color = color0) {
         require(isActive)
 
@@ -224,10 +236,7 @@ class Renderer(graphics: Graphics2D) : Disposable {
                 Kore.log.error(this::class, "Couldn't find shader, using default shader: ${material.shader}")
                 DefaultShader
             }
-            texture = Game.textures[material.colorTexturePath]?.texture ?: run {
-                Kore.log.error(this::class, "Couldn't find texture, using missing texture: ${material.shader}")
-                Game.graphics2d.missingTexture
-            }
+            texture = Game.textures[material.colorTexturePath].texture
             shader.setMaterial(material)
             context.draw(batch.context)
         } else {

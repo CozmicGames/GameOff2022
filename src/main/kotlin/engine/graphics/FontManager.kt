@@ -17,6 +17,8 @@ class FontManager : Disposable {
 
     private val fonts = hashMapOf<String, Font>()
 
+    val names get() = fonts.keys.toList()
+
     fun add(file: FileHandle) {
         if (!file.exists) {
             Kore.log.error(this::class, "Font file not found: $file")

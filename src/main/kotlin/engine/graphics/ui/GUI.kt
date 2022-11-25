@@ -1,11 +1,8 @@
 package engine.graphics.ui
 
-import com.cozmicgames.DropListener
-import com.cozmicgames.Kore
-import com.cozmicgames.graphics
+import com.cozmicgames.*
 import com.cozmicgames.graphics.safeHeight
 import com.cozmicgames.graphics.safeWidth
-import com.cozmicgames.input
 import com.cozmicgames.input.*
 import com.cozmicgames.utils.Color
 import com.cozmicgames.utils.Disposable
@@ -13,27 +10,21 @@ import com.cozmicgames.utils.Time
 import com.cozmicgames.utils.maths.Matrix4x4
 import com.cozmicgames.utils.maths.Rectangle
 import com.cozmicgames.utils.maths.Vector2
+import com.cozmicgames.utils.maths.intersectRectRect
 import engine.Game
 import engine.graphics.font.BitmapFont
 import engine.graphics.shaders.DefaultShader
 import kotlin.math.max
+import kotlin.math.min
 
 class GUI(val skin: GUISkin = GUISkin()) : Disposable {
-    /**
-     * The state an element can have.
-     * HOVERED: The mouse is hovering over the element.
-     * ACTIVE: The element is being interacted with.
-     * ENTERED: The element has been entered.
-     * LEFT: The element has been left.
-     *
-     * States can be combined to a bitfield using the combine function.
-     * The resulting bitfield can be used to check if a state is active by the isSet function.
-     */
     enum class State {
         HOVERED,
         ACTIVE,
         ENTERED,
-        LEFT;
+        LEFT,
+        HOVERED_DROPPABLE,
+        ACTIVE_DROPPABLE;
 
         companion object {
             /**
@@ -46,6 +37,18 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
             fun combine(vararg states: State, base: Int = 0): Int {
                 var flags = base
                 states.forEach {
+                    /**
+                     * The state an element can have.
+                     * HOVERED: The mouse is hovering over the element.
+                     * ACTIVE: The element is being interacted with.
+                     * ENTERED: The element has been entered.
+                     * LEFT: The element has been left.
+                     * HOVERED_DROPPABLE: The mouse is hovering over the element and either [currentDragDropData] is not null or external dropped elements are present.
+                     * ACTIVE_WITH_DRAGDROPDATA: The element is being interacted with and either [currentDragDropData] is not null or external dropped elements are present.
+                     *
+                     * States can be combined to a bitfield using the combine function.
+                     * The resulting bitfield can be used to check if a state is active by the isSet function.
+                     */
                     flags = flags or (1 shl it.ordinal)
                 }
                 return flags
@@ -113,6 +116,7 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
     private var addToLayer = true
     private var lastUpdatedFrame = -1
     private var droppedTimeCounter = 0.0f
+    private var isInteractionEnabledLocal = true
 
     private val inputListener = object : InputListener {
         override fun onKey(key: Key, down: Boolean, time: Double) {
@@ -165,6 +169,13 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
      * @see GUIGroup
      */
     var currentGroup: GUIGroup? = null
+        private set
+
+    /**
+     * The current popup, if one is present.
+     * @see GUIPopup
+     */
+    var currentPopup: GUIPopup? = null
         private set
 
     /**
@@ -223,6 +234,11 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
      * Whether a tooltip should be shown, based on the time the pointer stands still.
      */
     val shouldShowTooltip get() = tooltipCounter >= skin.tooltipDelay
+
+    /**
+     * Whether [setLastElement] should consider the current scissor rectangle for calculating element positions.
+     */
+    var useScissorRectForElementPositioning = true
 
     init {
         Kore.input.addListener(inputListener)
@@ -373,18 +389,39 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
      * @return The element.
      */
     fun setLastElement(element: GUIElement): GUIElement {
-        if (addToLayer)
-            currentLayer.addElement(element)
-
-        lineHeight = if (isSameLine)
-            max(lineHeight, element.height)
-        else
-            element.height
-
         lastElement = element
 
+        var elementMinX = element.x
+        var elementMinY = element.y
+        var elementMaxX = element.x + element.width
+        var elementMaxY = element.y + element.height
+
+        if (useScissorRectForElementPositioning)
+            currentScissorRectangle?.let {
+                val minX2 = it.minX
+                val minY2 = it.minY
+                val maxX2 = it.maxX
+                val maxY2 = it.maxY
+
+                if (!intersectRectRect(elementMinX, elementMinY, elementMaxX, elementMaxY, minX2, minY2, maxX2, maxY2))
+                    return element
+
+                elementMinX = max(elementMinX, minX2)
+                elementMinY = max(elementMinY, minY2)
+                elementMaxX = min(elementMaxX, maxX2)
+                elementMaxY = min(elementMaxY, maxY2)
+            }
+
+        if (addToLayer)
+            currentLayer.addElement(elementMinX, elementMinY, elementMaxX, elementMaxY)
+
+        lineHeight = if (isSameLine)
+            max(lineHeight, elementMaxY - elementMinY)
+        else
+            elementMaxY - elementMinY
+
         currentGroup?.let {
-            it.width = max(it.width, element.x + element.width - it.x + skin.elementPadding)
+            it.width = max(it.width, elementMaxX - it.x + skin.elementPadding)
 
             if (!isSameLine)
                 it.height += lineHeight
@@ -491,7 +528,7 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
     /**
      * Performs a block of code and resetting the last element afterwards.
      *
-     * @param ignoreGroup If set to true, the current group, if set, won't be changed by [block].
+     * @param ignoreGroup If set to true, the current group, won't be affected by [block].
      * @param addToLayer If set to false, no visibility data will be added by [block].
      * @param block The block to execute.
      */
@@ -580,7 +617,7 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
      * @return The state of the area as a bitfield.
      */
     fun getState(rectangle: Rectangle, behaviour: TouchBehaviour = TouchBehaviour.NONE, checkVisibility: Boolean = true): Int {
-        if (!isInteractionEnabled)
+        if (!isInteractionEnabled || !isInteractionEnabledLocal)
             return 0
 
         var state = 0
@@ -592,13 +629,24 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
             return state
 
         if (touchPosition in rectangle) {
-            state += State.HOVERED
+            if (currentDragDropData != null || externalDroppedElements.isNotEmpty()) {
+                state += State.HOVERED_DROPPABLE
 
-            when (behaviour) {
-                TouchBehaviour.ONCE_DOWN -> if (Kore.input.justTouchedDown) state += State.ACTIVE
-                TouchBehaviour.ONCE_UP -> if (Kore.input.justTouchedUp) state += State.ACTIVE
-                TouchBehaviour.REPEATED -> if (Kore.input.isTouched) state += State.ACTIVE
-                else -> {}
+                when (behaviour) {
+                    TouchBehaviour.ONCE_DOWN -> if (Kore.input.justTouchedDown) state += State.ACTIVE_DROPPABLE
+                    TouchBehaviour.ONCE_UP -> if (Kore.input.justTouchedUp) state += State.ACTIVE_DROPPABLE
+                    TouchBehaviour.REPEATED -> if (Kore.input.isTouched) state += State.ACTIVE_DROPPABLE
+                    else -> {}
+                }
+            } else {
+                state += State.HOVERED
+
+                when (behaviour) {
+                    TouchBehaviour.ONCE_DOWN -> if (Kore.input.justTouchedDown) state += State.ACTIVE
+                    TouchBehaviour.ONCE_UP -> if (Kore.input.justTouchedUp) state += State.ACTIVE
+                    TouchBehaviour.REPEATED -> if (Kore.input.isTouched) state += State.ACTIVE
+                    else -> {}
+                }
             }
 
             if (lastTouchPosition !in rectangle)
@@ -638,7 +686,7 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
      *
      * @param block The block to execute.
      */
-    fun group(backgroundColor: Color? = null, block: () -> Unit): GUIElement {
+    fun group(backgroundColor: Color? = null, minWidth: Float? = null, minHeight: Float? = null, block: () -> Unit): GUIElement {
         val (x, y) = getLastElement()
 
         val previousGroup = currentGroup
@@ -652,8 +700,16 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
 
         val commands = recordCommands(block)
 
+        val groupX = group.x
+        val groupY = group.y
+        var groupWidth = group.width
+        var groupHeight = group.height
+
+        minWidth?.let { groupWidth = max(groupWidth, it) }
+        minHeight?.let { groupHeight = max(groupHeight, it) }
+
         backgroundColor?.let {
-            currentCommandList.drawRectFilled(group.x, group.y, group.width, group.height, skin.roundedCorners, skin.cornerRounding, it)
+            currentCommandList.drawRectFilled(groupX, groupY, groupWidth, groupHeight, skin.roundedCorners, skin.cornerRounding, it)
         }
         currentCommandList.addCommandList(commands)
 
@@ -661,7 +717,19 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
         isSameLine = previousSameLine
         lineHeight = previousLineHeight
 
-        return setLastElement(group.x, group.y, group.width, group.height)
+        return setLastElement(groupX, groupY, groupWidth, groupHeight)
+    }
+
+    /**
+     * //TODO: Document
+     */
+    fun popup(block: GUIPopup.(GUI, Float, Float) -> GUIElement) {
+        if (currentPopup != null) {
+            Kore.log.error(this::class, "A popup is already open.")
+            return
+        }
+
+        currentPopup = GUIPopup(block)
     }
 
     /**
@@ -670,18 +738,20 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
      * @param block The block to execute to retrieve the element.
      */
     fun getElementSize(block: () -> GUIElement): GUIElement {
-        val previousIsInteractionEnabled = isInteractionEnabled
+        val previousIsInteractionEnabledLocal = isInteractionEnabledLocal
         val previousCommandList = currentCommandList
-        val previousLastElement = getLastElement()
 
-        isInteractionEnabled = false
+        isInteractionEnabledLocal = false
         currentCommandList = GUICommandList()
 
-        val result = block()
+        lateinit var result: GUIElement
 
-        isInteractionEnabled = previousIsInteractionEnabled
+        transient(false, false) {
+            result = block()
+        }
+
+        isInteractionEnabledLocal = previousIsInteractionEnabledLocal
         currentCommandList = previousCommandList
-        setLastElement(previousLastElement)
 
         return result
     }
@@ -701,6 +771,10 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
             tooltipCounter += deltaTime
         else
             tooltipCounter = 0.0f
+
+        currentDragDropData?.isRendered = false
+
+        isInteractionEnabledLocal = currentPopup == null
     }
 
     /**
@@ -726,7 +800,7 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
     fun end() {
         if (lastUpdatedFrame != Kore.graphics.statistics.numFrames) {
             currentScrollAmount.mul(0.9f)
-            if (currentScrollAmount.lengthSquared > 0.01f)
+            if (currentScrollAmount.lengthSquared <= 0.01f)
                 currentScrollAmount.setZero()
 
             if (Kore.input.justTouchedUp)
@@ -744,6 +818,23 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
 
             lastUpdatedFrame = Kore.graphics.statistics.numFrames
         }
+
+        if (isInteractionEnabled)
+            currentPopup?.let {
+                val size = getElementSize {
+                    it.draw(it, this, 0.0f, 0.0f)
+                }
+
+                transient {
+                    setLastElement(absolute((Kore.graphics.safeWidth - size.width) * 0.5f, (Kore.graphics.safeHeight - size.height) * 0.5f))
+                    isInteractionEnabledLocal = true
+                    it.draw(it, this, size.width, size.height)
+                    isInteractionEnabledLocal = false
+                }
+
+                if (!it.isActive)
+                    currentPopup = null
+            }
 
         transform.setToOrtho2D(Kore.graphics.safeInsetLeft.toFloat(), Kore.graphics.safeWidth.toFloat(), Kore.graphics.safeHeight.toFloat(), Kore.graphics.safeInsetTop.toFloat())
 

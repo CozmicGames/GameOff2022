@@ -35,7 +35,7 @@ fun GUI.colorEdit(color: Color): GUIElement {
         var state = getState(rectangle, GUI.TouchBehaviour.REPEATED)
 
         var crossHairColor = skin.normalColor
-        if (GUI.State.HOVERED in state) {
+        if (GUI.State.HOVERED in state && currentDragDropData == null) {
             if (GUI.State.ACTIVE in state) {
                 hsv[1] = (touchPosition.x - rectangle.x) / rectangle.width
                 hsv[2] = 1.0f - (touchPosition.y - rectangle.y) / rectangle.height

@@ -87,7 +87,7 @@ class LoadingGameState : GameState {
         val progress = loadedTasks.toFloat() / totalTasks
 
         Game.graphics2d.render {
-            it.draw(Game.textures[Kore.files.asset("icons/icon.png")]!!, iconX, iconY, iconSize, iconSize)
+            it.draw(Game.textures[Kore.files.asset("icons/icon.png")], iconX, iconY, iconSize, iconSize)
             it.drawRect(progressX, progressY, progressWidth, progressHeight, Color.GRAY)
             it.drawRect(progressX, progressY, progressWidth * progress, progressHeight, Color.RED)
         }

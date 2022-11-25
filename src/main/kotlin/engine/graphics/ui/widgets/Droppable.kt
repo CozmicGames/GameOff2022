@@ -34,13 +34,14 @@ fun <T : Any> GUI.droppable(onDrop: (T) -> Unit, acceptedType: KClass<T>, border
     val isExternalDropSingleElementAccepted = externalDroppedElements.isNotEmpty() && acceptedType.isInstance(externalDroppedElements.first())
 
     val isExternalAccepted = isExternalDropElementsAccepted || isExternalDropSingleElementAccepted
+    val isAnyAccepted = isDragDropDataAccepted || isExternalAccepted
 
-    val color = if (GUI.State.ACTIVE in state) {
+    val color = if (GUI.State.ACTIVE_DROPPABLE in state) {
         if (isDragDropDataAccepted)
             onDrop(requireNotNull(currentDragDropData).payload as T)
 
         skin.highlightColor
-    } else if (GUI.State.HOVERED in state)
+    } else if (GUI.State.HOVERED_DROPPABLE in state)
         skin.hoverColor
     else if (isExternalAccepted && isInteractionEnabled && externalDropLocation in rectangle && isPositionVisible(externalDropLocation) && isPositionInsideCurrentScissorRect(externalDropLocation)) {
         if (isExternalDropElementsAccepted) {
@@ -54,10 +55,12 @@ fun <T : Any> GUI.droppable(onDrop: (T) -> Unit, acceptedType: KClass<T>, border
         }
 
         skin.highlightColor
-    } else
+    } else if (isAnyAccepted)
+        skin.normalColor
+    else
         null
 
-    if ((isDragDropDataAccepted || isExternalAccepted) && borderThickness > 0.0f && color != null)
+    if (isAnyAccepted && borderThickness > 0.0f && color != null)
         currentCommandList.drawRect(rectangle.x, rectangle.y, rectangle.width, rectangle.height, skin.roundedCorners, skin.cornerRounding, borderThickness, color)
 
     return element

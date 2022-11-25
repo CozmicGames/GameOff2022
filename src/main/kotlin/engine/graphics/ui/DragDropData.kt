@@ -5,10 +5,10 @@ import com.cozmicgames.graphics
 import engine.graphics.ui.widgets.label
 
 open class DragDropData<T : Any>(val payload: T, val onDrawPayload: GUI.() -> Unit) {
-    private var renderedFrame = -1
+    internal var isRendered = false
 
     fun drawPayload(gui: GUI) {
-        if (renderedFrame == Kore.graphics.statistics.numFrames)
+        if (isRendered)
             return
 
         gui.topLayer {
@@ -18,7 +18,7 @@ open class DragDropData<T : Any>(val payload: T, val onDrawPayload: GUI.() -> Un
             }
         }
 
-        renderedFrame = Kore.graphics.statistics.numFrames
+        isRendered = true
     }
 }
 

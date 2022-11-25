@@ -26,6 +26,6 @@ fun GUI.scrollPane(maxWidth: Float? = null, maxHeight: Float? = null, scroll: Ve
     currentCommandList.drawRectFilled(element.x, element.y, element.width, element.height, Corners.NONE, 0.0f, backgroundColor)
     currentCommandList.addCommandList(commands)
 
-    return setLastElement(element)
+    return element
 }
 

@@ -18,6 +18,8 @@ class TileSetManager {
 
     private val tileSets = hashMapOf<String, TileSet>()
 
+    val names get() = tileSets.keys.toList()
+
     fun add(file: FileHandle) {
         if (!file.exists) {
             Kore.log.error(this::class, "Tileset file not found: $file")

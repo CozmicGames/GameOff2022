@@ -10,11 +10,7 @@ class GlyphLayout() : Iterable<GlyphLayout.Quad> {
         update(text, font, lineGap, bounds, hAlign, vAlign)
     }
 
-    class Quad {
-        var x = 0.0f
-        var y = 0.0f
-        var width = 0.0f
-        var height = 0.0f
+    class Quad : Rectangle() {
         var u0 = 0.0f
         var v0 = 0.0f
         var u1 = 0.0f

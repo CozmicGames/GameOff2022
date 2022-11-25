@@ -20,7 +20,7 @@ class RenderBatchBuilder : Disposable {
             batches += batch
         }
 
-        val region = Game.textures[material.colorTexturePath] ?: Game.graphics2d.missingTexture.asRegion()
+        val region = Game.textures[material.colorTexturePath]
         batch.context.drawDrawable(drawable, region.u0, region.v0, region.u1, region.v1, material.color)
     }
 

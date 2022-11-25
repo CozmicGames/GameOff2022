@@ -1,18 +1,20 @@
 package engine.graphics.ui.widgets
 
+import com.cozmicgames.utils.Color
 import com.cozmicgames.utils.maths.Rectangle
 import engine.graphics.TextureRegion
 import engine.graphics.font.GlyphLayout
 import engine.graphics.ui.*
 
 /**
- * Adds a text button element.
+ * Adds a selectable text to the GUI.
  *
- * @param text The text of the button.
+ * @param text The text.
  * @param texture An optional texture to display behind the text.
- * @param action The function to execute when the button is clicked.
+ * @param isSelected Whether the image is selected.
+ * @param action The action to perform when the image is clicked.
  */
-fun GUI.textButton(text: String, texture: TextureRegion? = null, action: () -> Unit): GUIElement {
+fun GUI.selectableText(text: String, texture: TextureRegion? = null, isSelected: Boolean, action: () -> Unit): GUIElement {
     val (x, y) = getLastElement()
 
     val rectangle = Rectangle()
@@ -27,15 +29,17 @@ fun GUI.textButton(text: String, texture: TextureRegion? = null, action: () -> U
     rectangle.height = layout.height + skin.elementPadding * 2.0f
 
     if (texture != null)
-        rectangle.width += skin.contentSize + skin.elementPadding * 2.0f
+        rectangle.width += skin.elementSize
 
-    val state = getState(rectangle, GUI.TouchBehaviour.ONCE_UP)
+    val state = getState(rectangle, GUI.TouchBehaviour.ONCE_DOWN)
 
-    val color = if (GUI.State.ACTIVE in state) {
+    if (GUI.State.ACTIVE in state)
         action()
-        skin.highlightColor
-    } else if (GUI.State.HOVERED in state)
+
+    val color = if (GUI.State.HOVERED in state && !isSelected)
         skin.hoverColor
+    else if (isSelected)
+        skin.highlightColor
     else
         skin.normalColor
 
@@ -43,7 +47,7 @@ fun GUI.textButton(text: String, texture: TextureRegion? = null, action: () -> U
     currentCommandList.drawText(textX, textY, layout, skin.fontColor)
 
     if (texture != null)
-        currentCommandList.drawImage(textX + skin.elementPadding, textY, skin.contentSize, skin.contentSize, texture, color)
+        currentCommandList.drawImage(textX + layout.width + skin.elementPadding, y, skin.elementSize, skin.elementSize, texture, skin.fontColor)
 
     return setLastElement(x, y, rectangle.width, rectangle.height)
 }

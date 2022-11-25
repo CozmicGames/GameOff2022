@@ -40,8 +40,6 @@ fun GUI.combobox(data: ComboboxData<*>, maxDropOutHeight: Float? = null): GUIEle
         maxItemWidth -= skin.scrollbarSize + skin.elementPadding
 
     if (data.isOpen) {
-        val previousSameLine =
-
         layerUp {
             transient {
                 scrollPane(maxHeight = maxDropOutHeight, scroll = data.scrollAmount, backgroundColor = skin.normalColor) {

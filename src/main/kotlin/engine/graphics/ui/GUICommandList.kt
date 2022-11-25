@@ -6,6 +6,7 @@ import com.cozmicgames.graphics.gpu.ScissorRect
 import com.cozmicgames.graphics.gpu.Texture2D
 import com.cozmicgames.utils.Color
 import com.cozmicgames.utils.maths.Corners
+import com.cozmicgames.utils.maths.Rectangle
 import com.cozmicgames.utils.maths.Vector2
 import com.cozmicgames.utils.maths.VectorPath
 import engine.graphics.Renderer
@@ -77,17 +78,17 @@ fun GUICommandList.drawRectMultiColor(x: Float, y: Float, width: Float, height: 
 
 fun GUICommandList.drawTriangle(x0: Float, y0: Float, x1: Float, y1: Float, x2: Float, y2: Float, thickness: Float, color: Color) = addCommand {
     drawPathStroke(path {
-        line(x0, y0, x1, y1)
-        line(x1, y1, x2, y2)
-        line(x2, y2, x0, y0)
+        add(x0, y0)
+        add(x1, y1)
+        add(x2, y2)
     }, thickness, true, color)
 }
 
 fun GUICommandList.drawTriangleFilled(x0: Float, y0: Float, x1: Float, y1: Float, x2: Float, y2: Float, color: Color) = addCommand {
     drawPathFilled(path {
-        line(x0, y0, x1, y1)
-        line(x1, y1, x2, y2)
-        line(x2, y2, x0, y0)
+        add(x0, y0)
+        add(x1, y1)
+        add(x2, y2)
     }, color)
 }
 
@@ -146,8 +147,11 @@ fun GUICommandList.drawImage(x: Float, y: Float, width: Float, height: Float, re
     draw(region, x, y, width, height, color)
 }
 
-fun GUICommandList.drawText(x: Float, y: Float, layout: GlyphLayout, foregroundColor: Color) = addCommand {
-    drawGlyphs(layout, x, y, foregroundColor)
+fun GUICommandList.drawText(x: Float, y: Float, layout: GlyphLayout, foregroundColor: Color, clipRect: Rectangle? = null) = addCommand {
+    if (clipRect != null)
+        drawGlyphsClipped(layout, x, y, clipRect, foregroundColor)
+    else
+        drawGlyphs(layout, x, y, foregroundColor)
 }
 
 fun GUICommandList.drawPath(path: VectorPath, thickness: Float, closed: Boolean, color: Color) = addCommand {

@@ -196,6 +196,9 @@ fun DrawContext.drawRect(x: Float, y: Float, width: Float, height: Float, color:
 }
 
 fun DrawContext.drawPathFilled(path: VectorPath, color: Color = Color.WHITE, uMin: Float = 0.0f, vMin: Float = 0.0f, uMax: Float = 1.0f, vMax: Float = 1.0f) {
+    if (path.count <= 0)
+        return
+
     if (path.isConvex)
         drawPathFilledConvex(path, color, uMin, vMin, uMax, vMax)
     else
@@ -226,6 +229,13 @@ fun DrawContext.drawPathFilledConvex(path: VectorPath, color: Color = Color.WHIT
 }
 
 fun DrawContext.drawPathFilledConcave(path: VectorPath, color: Color = Color.WHITE, uMin: Float = 0.0f, vMin: Float = 0.0f, uMax: Float = 1.0f, vMax: Float = 1.0f) {
+    if (path.count <= 3)
+        return
+
+    //TODO: Fix this....
+
+    return
+
     val indices = triangulate(path)
 
     repeat(indices.size / 3) {
@@ -412,6 +422,40 @@ fun DrawContext.drawDrawable(drawable: Drawable, u0: Float = 0.0f, v0: Float = 0
 fun DrawContext.drawGlyphs(glyphLayout: GlyphLayout, x: Float, y: Float, color: Color = Color.WHITE) {
     for (quad in glyphLayout)
         drawRect(quad.x + x, quad.y + y, quad.width, quad.height, color, 0.0f, quad.u0, quad.v0, quad.u1, quad.v1)
+}
+
+fun DrawContext.drawGlyphsClipped(glyphLayout: GlyphLayout, x: Float, y: Float, clipRect: Rectangle, color: Color = Color.WHITE) {
+    val quadRectangle = Rectangle()
+
+    for (quad in glyphLayout) {
+        quadRectangle.set(quad)
+        quadRectangle.x += x
+        quadRectangle.y += y
+
+        if (!(quadRectangle intersects clipRect))
+            continue
+
+        if (quadRectangle in clipRect)
+            drawRect(quadRectangle.x, quadRectangle.y, quad.width, quad.height, color, 0.0f, quad.u0, quad.v0, quad.u1, quad.v1)
+        else {
+            val minX = max(quadRectangle.minX, clipRect.minX)
+            val minY = max(quadRectangle.minY, clipRect.minY)
+            val maxX = min(quadRectangle.maxX, clipRect.maxX)
+            val maxY = min(quadRectangle.maxY, clipRect.maxY)
+
+            val normalizedMinX = minX / quadRectangle.width
+            val normalizedMinY = minY / quadRectangle.height
+            val normalizedMaxX = maxX / quadRectangle.width
+            val normalizedMaxY = maxY / quadRectangle.height
+
+            val u0 = quad.u0 + (quad.u1 - quad.u0) * normalizedMinX
+            val v0 = quad.v0 + (quad.v1 - quad.v0) * normalizedMinY
+            val u1 = quad.u0 + (quad.u1 - quad.u0) * normalizedMaxX
+            val v1 = quad.v0 + (quad.v1 - quad.v0) * normalizedMaxY
+
+            drawRect(minX, minY, maxX - minX, maxY - minY, color, 0.0f, u0, v0, u1, v1)
+        }
+    }
 }
 
 fun DrawContext.drawTriangle(x0: Float, y0: Float, x1: Float, y1: Float, x2: Float, y2: Float, color0: Color, color1: Color = color0, color2: Color = color0, uMin: Float = 0.0f, vMin: Float = 0.0f, uMax: Float = 1.0f, vMax: Float = 1.0f) {
