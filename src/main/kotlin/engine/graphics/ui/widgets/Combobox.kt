@@ -41,7 +41,7 @@ fun GUI.combobox(data: ComboboxData<*>, maxDropOutHeight: Float? = null): GUIEle
 
     if (data.isOpen) {
         layerUp {
-            transient {
+            transient(true) {
                 scrollPane(maxHeight = maxDropOutHeight, scroll = data.scrollAmount, backgroundColor = skin.normalColor) {
                     repeat(data.size) {
                         comboboxElement(data, it, maxItemWidth)
@@ -51,7 +51,7 @@ fun GUI.combobox(data: ComboboxData<*>, maxDropOutHeight: Float? = null): GUIEle
         }
     }
 
-    return setLastElement(element)
+    return element
 }
 
 private fun GUI.comboboxElement(data: ComboboxData<*>, index: Int, itemWidth: Float) {

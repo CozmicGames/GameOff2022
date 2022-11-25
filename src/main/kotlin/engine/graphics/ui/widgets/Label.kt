@@ -16,8 +16,9 @@ import kotlin.math.min
  * @param maxWidth An optional maximum width of this label.
  * @param minWidth An optional minumum width of this label.
  * @param align How to align the text inside this label if [minWidth] exceeds the size needed by the text.
+ * @param overrideFontColor A color that will be used for the text if not null.
  */
-fun GUI.label(text: String, backgroundColor: Color? = skin.backgroundColor, maxWidth: Float? = null, minWidth: Float? = null, align: HAlign = HAlign.LEFT): GUIElement {
+fun GUI.label(text: String, backgroundColor: Color? = skin.backgroundColor, maxWidth: Float? = null, minWidth: Float? = null, align: HAlign = HAlign.LEFT, overrideFontColor: Color? = null): GUIElement {
     val (x, y) = getLastElement()
     val layout = GlyphLayout(text, drawableFont)
     val textX = x + skin.elementPadding
@@ -25,13 +26,15 @@ fun GUI.label(text: String, backgroundColor: Color? = skin.backgroundColor, maxW
     var textWidth = layout.width + 2.0f * skin.elementPadding
     val textHeight = layout.height + 2.0f * skin.elementPadding
 
+    val fontColor = overrideFontColor ?: skin.fontColor
+
     if (maxWidth != null) {
         val clipRectangle = Rectangle(x, y, maxWidth, textHeight)
 
         if (backgroundColor != null)
             currentCommandList.drawRectFilled(x, y, textWidth, textHeight, skin.roundedCorners, skin.cornerRounding, backgroundColor)
 
-        currentCommandList.drawText(textX, textY, layout, skin.fontColor, clipRectangle)
+        currentCommandList.drawText(textX, textY, layout, fontColor, clipRectangle)
 
         textWidth = min(textWidth, maxWidth)
     } else if (minWidth != null) {
@@ -46,14 +49,14 @@ fun GUI.label(text: String, backgroundColor: Color? = skin.backgroundColor, maxW
             HAlign.RIGHT -> textX + labelWidth - textWidth
         }
 
-        currentCommandList.drawText(alignedTextX, textY, layout, skin.fontColor)
+        currentCommandList.drawText(alignedTextX, textY, layout, fontColor)
 
         textWidth = labelWidth
     } else {
         if (backgroundColor != null)
             currentCommandList.drawRectFilled(x, y, textWidth, textHeight, skin.roundedCorners, skin.cornerRounding, backgroundColor)
 
-        currentCommandList.drawText(textX, textY, layout, skin.fontColor)
+        currentCommandList.drawText(textX, textY, layout, fontColor)
     }
 
     return setLastElement(x, y, textWidth, textHeight)

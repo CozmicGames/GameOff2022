@@ -63,6 +63,7 @@ class AssetSelector : Disposable {
 
         val filterComboboxData = ComboboxData(*Texture.Filter.values())
         var splitToTiles = false
+        var excludeEmptyImages = true
         val tileWidthTextColor = Game.gui.skin.fontColor.copy()
         val tileHeightTextColor = Game.gui.skin.fontColor.copy()
 
@@ -99,6 +100,7 @@ class AssetSelector : Disposable {
 
             filterComboboxData.selectedIndex = 0
             splitToTiles = false
+            excludeEmptyImages = true
             tileWidth = 1
             tileHeight = 1
         }
@@ -182,115 +184,128 @@ class AssetSelector : Disposable {
                     imageImportPopupSettings.reset(file)
 
                     gui.popup { gui, width, height ->
-                        gui.group(Game.editorStyle.panelContentBackgroundColor) {
-                            val cancelButton = {
-                                gui.textButton("Cancel") {
-                                    closePopup()
-                                }
-                            }
-
-                            val cancelButtonSize = if (width > 0.0f) gui.getElementSize(cancelButton).width else 0.0f
-
-                            val importButton = {
-                                gui.textButton("Import") {
-                                    val selectedFilter = imageImportPopupSettings.filterComboboxData.selectedItem ?: Texture.Filter.NEAREST
-
-                                    if (imageImportPopupSettings.splitToTiles) {
-                                        val columns = imageImportPopupSettings.data.image.width / max(imageImportPopupSettings.tileWidth, 1)
-                                        val rows = imageImportPopupSettings.data.image.height / max(imageImportPopupSettings.tileHeight, 1)
-                                        val images = imageImportPopupSettings.data.image.split(columns, rows)
-
-                                        repeat(images.width) { x ->
-                                            repeat(images.height) { y ->
-                                                val image = requireNotNull(images[x, y])
-                                                Game.textures.add("${file.pathWithoutExtension}_${x}_${y}.${file.extension}", image, selectedFilter)
-                                            }
+                        gui.dropShadow(Game.editorStyle.imageImportDropShadowColor) {
+                            gui.bordered(Game.editorStyle.imageImportPopupBorderColor, 2.5f) {
+                                gui.group(Game.editorStyle.panelContentBackgroundColor) {
+                                    val cancelButton = {
+                                        gui.textButton("Cancel") {
+                                            closePopup()
                                         }
-                                    } else
-                                        Game.textures.add(Kore.files.absolute(file), selectedFilter)
-
-                                    closePopup()
-                                }
-                            }
-
-                            val importButtonSize = if (width > 0.0f) gui.getElementSize(importButton).width else 0.0f
-
-                            gui.label("Import texture", Game.editorStyle.panelTitleBackgroundColor, minWidth = if (width > 0.0f) width else null, align = HAlign.CENTER)
-
-                            imageImportPopupSettings.data.previewTexture?.let {
-                                it.setSampler(
-                                    when (imageImportPopupSettings.filterComboboxData.selectedItem) {
-                                        Texture.Filter.LINEAR -> Game.graphics2d.linearClampSampler
-                                        else -> Game.graphics2d.pointClampSampler
-                                    }
-                                )
-
-                                val previewImageWidth = Game.editorStyle.imageImportPreviewSize * min(Kore.graphics.width, Kore.graphics.height)
-                                val previewImageHeight = previewImageWidth * imageImportPopupSettings.data.image.height.toFloat() / imageImportPopupSettings.data.image.width.toFloat()
-
-                                val (linesX, linesY) = gui.getLastElement()
-
-                                gui.image(it.asRegion(), previewImageWidth, previewImageHeight, borderThickness = 0.0f)
-
-                                if (imageImportPopupSettings.splitToTiles) {
-                                    val linesHorizontal = imageImportPopupSettings.data.image.width / imageImportPopupSettings.tileWidth - 1
-                                    val linesVertical = imageImportPopupSettings.data.image.height / imageImportPopupSettings.tileHeight - 1
-
-                                    val lineSpacingHorizontal = previewImageWidth / (linesHorizontal + 1)
-                                    val lineSpacingVertical = previewImageHeight / (linesVertical + 1)
-
-                                    repeat(linesHorizontal) {
-                                        val x = linesX + (it + 1) * lineSpacingHorizontal
-                                        gui.currentCommandList.drawLine(x, linesY, x, linesY + previewImageHeight, 2.5f, gui.skin.fontColor)
                                     }
 
-                                    repeat(linesVertical) {
-                                        val y = linesY + (it + 1) * lineSpacingVertical
-                                        gui.currentCommandList.drawLine(linesX, y, linesX + previewImageWidth, y, 2.5f, gui.skin.fontColor)
-                                    }
-                                }
-                            }
+                                    val cancelButtonSize = if (width > 0.0f) gui.getElementSize(cancelButton).width else 0.0f
 
-                            gui.sameLine {
-                                gui.group {
-                                    gui.label("Filter", null)
-                                    gui.label("Split to tiles", null)
-                                    gui.label("Tile width", null)
-                                    gui.label("Tile height", null)
-                                }
-                                gui.group {
-                                    gui.combobox(imageImportPopupSettings.filterComboboxData)
-                                    gui.checkBox(imageImportPopupSettings.splitToTiles) { imageImportPopupSettings.splitToTiles = it }
+                                    val importButton = {
+                                        gui.textButton("Import") {
+                                            val selectedFilter = imageImportPopupSettings.filterComboboxData.selectedItem ?: Texture.Filter.NEAREST
+
+                                            if (imageImportPopupSettings.splitToTiles) {
+                                                val columns = imageImportPopupSettings.data.image.width / max(imageImportPopupSettings.tileWidth, 1)
+                                                val rows = imageImportPopupSettings.data.image.height / max(imageImportPopupSettings.tileHeight, 1)
+                                                val images = imageImportPopupSettings.data.image.split(columns, rows)
+
+                                                repeat(images.width) { x ->
+                                                    repeat(images.height) { y ->
+                                                        images[x, y]?.let {
+                                                            if (!(imageImportPopupSettings.excludeEmptyImages && it.pixels.data.all { it.data.all { it == 0.0f } }))
+                                                                Game.textures.add("${file.pathWithoutExtension}_${x}_${y}.${file.extension}", it, selectedFilter)
+                                                        }
+                                                    }
+                                                }
+                                            } else
+                                                Game.textures.add(Kore.files.absolute(file), selectedFilter)
+
+                                            closePopup()
+                                        }
+                                    }
+
+                                    val importButtonSize = if (width > 0.0f) gui.getElementSize(importButton).width else 0.0f
+
+                                    gui.label("Import texture", Game.editorStyle.panelTitleBackgroundColor, minWidth = if (width > 0.0f) width else null, align = HAlign.CENTER)
+
+                                    imageImportPopupSettings.data.previewTexture?.let {
+                                        it.setSampler(
+                                            when (imageImportPopupSettings.filterComboboxData.selectedItem) {
+                                                Texture.Filter.LINEAR -> Game.graphics2d.linearClampSampler
+                                                else -> Game.graphics2d.pointClampSampler
+                                            }
+                                        )
+
+                                        val previewImageWidth = max(width, Game.editorStyle.imageImportPreviewSize * min(Kore.graphics.width, Kore.graphics.height))
+                                        val previewImageHeight = previewImageWidth * imageImportPopupSettings.data.image.height.toFloat() / imageImportPopupSettings.data.image.width.toFloat()
+
+                                        val (linesX, linesY) = gui.getLastElement()
+
+                                        gui.image(it.asRegion(), previewImageWidth, previewImageHeight, borderThickness = 0.0f)
+
+                                        if (imageImportPopupSettings.splitToTiles) {
+                                            val linesHorizontal = imageImportPopupSettings.data.image.width / imageImportPopupSettings.tileWidth - 1
+                                            val linesVertical = imageImportPopupSettings.data.image.height / imageImportPopupSettings.tileHeight - 1
+
+                                            val lineSpacingHorizontal = previewImageWidth / (linesHorizontal + 1)
+                                            val lineSpacingVertical = previewImageHeight / (linesVertical + 1)
+
+                                            repeat(linesHorizontal) {
+                                                val x = linesX + (it + 1) * lineSpacingHorizontal
+                                                gui.currentCommandList.drawLine(x, linesY, x, linesY + previewImageHeight, 2.5f, gui.skin.fontColor)
+                                            }
+
+                                            repeat(linesVertical) {
+                                                val y = linesY + (it + 1) * lineSpacingVertical
+                                                gui.currentCommandList.drawLine(linesX, y, linesX + previewImageWidth, y, 2.5f, gui.skin.fontColor)
+                                            }
+
+                                            val columns = imageImportPopupSettings.data.image.width / max(imageImportPopupSettings.tileWidth, 1)
+                                            val rows = imageImportPopupSettings.data.image.height / max(imageImportPopupSettings.tileHeight, 1)
+
+                                            gui.label("$columns x $rows tiles", null)
+                                        }
+                                    }
+
                                     gui.sameLine {
-                                        gui.textField(imageImportPopupSettings.tileWidthTextData)
                                         gui.group {
-                                            gui.upButton(gui.skin.elementSize * 0.5f) {
-                                                imageImportPopupSettings.tileWidth++
+                                            gui.label("Filter", null)
+                                            gui.label("Split to tiles", null)
+                                            gui.label("Exclude empty images", null)
+                                            gui.label("Tile width", null)
+                                            gui.label("Tile height", null)
+                                        }
+                                        gui.group {
+                                            gui.combobox(imageImportPopupSettings.filterComboboxData)
+                                            gui.checkBox(imageImportPopupSettings.splitToTiles) { imageImportPopupSettings.splitToTiles = it }
+                                            gui.checkBox(imageImportPopupSettings.excludeEmptyImages) { imageImportPopupSettings.excludeEmptyImages = it }
+                                            gui.sameLine {
+                                                gui.textField(imageImportPopupSettings.tileWidthTextData)
+                                                gui.group {
+                                                    gui.upButton(gui.skin.elementSize * 0.5f) {
+                                                        imageImportPopupSettings.tileWidth++
+                                                    }
+                                                    gui.downButton(gui.skin.elementSize * 0.5f) {
+                                                        imageImportPopupSettings.tileWidth--
+                                                    }
+                                                }
                                             }
-                                            gui.downButton(gui.skin.elementSize * 0.5f) {
-                                                imageImportPopupSettings.tileWidth--
+                                            gui.sameLine {
+                                                gui.textField(imageImportPopupSettings.tileHeightTextData)
+                                                gui.group {
+                                                    gui.upButton(Game.gui.skin.elementSize * 0.5f) {
+                                                        imageImportPopupSettings.tileHeight++
+                                                    }
+                                                    gui.downButton(Game.gui.skin.elementSize * 0.5f) {
+                                                        imageImportPopupSettings.tileHeight--
+                                                    }
+                                                }
                                             }
                                         }
                                     }
-                                    gui.sameLine {
-                                        gui.textField(imageImportPopupSettings.tileHeightTextData)
-                                        gui.group {
-                                            gui.upButton(Game.gui.skin.elementSize * 0.5f) {
-                                                imageImportPopupSettings.tileHeight++
-                                            }
-                                            gui.downButton(Game.gui.skin.elementSize * 0.5f) {
-                                                imageImportPopupSettings.tileHeight--
-                                            }
-                                        }
-                                    }
-                                }
-                            }
 
-                            gui.group(Game.editorStyle.panelTitleBackgroundColor) {
-                                gui.sameLine {
-                                    cancelButton()
-                                    gui.spacing(width - cancelButtonSize - importButtonSize)
-                                    importButton()
+                                    gui.group(Game.editorStyle.panelTitleBackgroundColor) {
+                                        gui.sameLine {
+                                            cancelButton()
+                                            gui.spacing(width - cancelButtonSize - importButtonSize)
+                                            importButton()
+                                        }
+                                    }
                                 }
                             }
                         }

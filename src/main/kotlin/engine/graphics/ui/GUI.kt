@@ -547,8 +547,9 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
 
         currentGroup = previousGroup
         this.addToLayer = previousAddToLayer
+        this.lastElement = lastElement
 
-        return setLastElement(lastElement)
+        return lastElement
     }
 
     /**
@@ -746,7 +747,7 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
 
         lateinit var result: GUIElement
 
-        transient(false, false) {
+        transient(true, false) {
             result = block()
         }
 
@@ -799,7 +800,7 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
      */
     fun end() {
         if (lastUpdatedFrame != Kore.graphics.statistics.numFrames) {
-            currentScrollAmount.mul(0.9f)
+            currentScrollAmount.mul(0.75f)
             if (currentScrollAmount.lengthSquared <= 0.01f)
                 currentScrollAmount.setZero()
 

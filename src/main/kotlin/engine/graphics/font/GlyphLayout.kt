@@ -15,14 +15,6 @@ class GlyphLayout() : Iterable<GlyphLayout.Quad> {
         var v0 = 0.0f
         var u1 = 0.0f
         var v1 = 0.0f
-
-        fun getRectangle(rectangle: Rectangle): Rectangle {
-            rectangle.x = x
-            rectangle.y = y
-            rectangle.width = width
-            rectangle.height = height
-            return rectangle
-        }
     }
 
     private val quads = arrayListOf<Quad>()
@@ -175,10 +167,20 @@ class GlyphLayout() : Iterable<GlyphLayout.Quad> {
     fun findCursorIndex(x: Float, y: Float) = findCursorIndex(Vector2(x, y))
 
     fun findCursorIndex(point: Vector2): Int {
-        val rectangle = Rectangle()
         for ((index, quad) in quads.withIndex()) {
-            if (point in quad.getRectangle(rectangle))
+            if (point in quad)
                 return index
+
+            if (index == quads.lastIndex) {
+                val rectangle = Rectangle()
+                rectangle.x = quad.maxX
+                rectangle.y = quad.y
+                rectangle.width = quad.width * 2.0f
+                rectangle.height = quad.height
+
+                if (point in rectangle)
+                    return index + 1
+            }
         }
         return -1
     }

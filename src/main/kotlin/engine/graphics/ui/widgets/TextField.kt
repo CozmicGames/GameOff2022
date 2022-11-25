@@ -32,7 +32,8 @@ fun GUI.textField(textData: TextData, minWidth: Float = skin.elementSize, action
 
     if (GUI.State.HOVERED in state && GUI.State.ACTIVE in state) {
         currentTextData = textData
-        textData.setCursor(max(0, layout.findCursorIndex(touchPosition.x - x + skin.elementPadding, touchPosition.y - y + skin.elementPadding)))
+        val cursorIndex = layout.findCursorIndex(touchPosition.x - x + skin.elementPadding, touchPosition.y - y + skin.elementPadding)
+        textData.setCursor(max(0, cursorIndex))
     } else if (Kore.input.justTouchedDown)
         currentTextData = null
 
