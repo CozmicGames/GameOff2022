@@ -1,10 +1,12 @@
 package engine.graphics.ui
 
-class GUIPopup(val draw: GUIPopup.(GUI, Float, Float) -> GUIElement) {
+abstract class GUIPopup {
     var isActive = true
         private set
 
     fun closePopup() {
         isActive = false
     }
+
+    abstract fun draw(gui: GUI, width: Float, height: Float): GUIElement
 }

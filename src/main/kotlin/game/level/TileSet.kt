@@ -103,7 +103,7 @@ class TileSet {
 
         private val rulesInternal = arrayListOf<Rule>()
 
-        val rules get() = ArrayList(rulesInternal).asIterable()
+        val rules get() = ArrayList(rulesInternal).toList()
 
         var defaultMaterial = "assets/materials/empty_tiletype.material"
         var width = 1.0f

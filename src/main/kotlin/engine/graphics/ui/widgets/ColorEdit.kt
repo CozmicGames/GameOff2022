@@ -12,8 +12,9 @@ import engine.graphics.ui.drawRectMultiColor
  * Adds a color picker to the GUI.
  *
  * @param color The color to edit.
+ * @param onChange Is called when the color is changed.
  */
-fun GUI.colorEdit(color: Color): GUIElement {
+fun GUI.colorEdit(color: Color, onChange: () -> Unit = {}): GUIElement {
     val (x, y) = getLastElement()
 
     val hsv = color.toHSV()
@@ -106,8 +107,14 @@ fun GUI.colorEdit(color: Color): GUIElement {
         currentCommandList.drawRectFilled(x + skin.elementPadding, y + skin.elementPadding, totalWidth, 12.0f, skin.roundedCorners, skin.cornerRounding, color)
     }
 
-    color.fromHSV(hsv)
-    color.a = newAlpha
+    val newColor = Color()
+    newColor.fromHSV(hsv)
+    newColor.a = newAlpha
+
+    if (newColor != color) {
+        onChange()
+        color.set(newColor)
+    }
 
     currentCommandList.drawRectFilled(x, y, totalWidth + skin.elementPadding * 2.0f, totalHeight + skin.elementPadding * 2.0f, skin.roundedCorners, skin.cornerRounding, skin.backgroundColor)
     currentCommandList.addCommandList(commands)

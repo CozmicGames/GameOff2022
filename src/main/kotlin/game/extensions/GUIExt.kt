@@ -5,7 +5,10 @@ import com.cozmicgames.utils.maths.Rectangle
 import engine.Game
 import engine.graphics.shaders.DefaultShader
 import engine.graphics.ui.*
+import engine.graphics.ui.widgets.imageButton
 import engine.materials.Material
+import game.level.LevelEditor
+import game.level.editorStyle
 import java.lang.Float.min
 import kotlin.math.sqrt
 
@@ -149,4 +152,88 @@ fun GUI.materialPreview(material: Material, width: Float = skin.elementSize, hei
         currentCommandList.drawRect(x, y, width, height, skin.roundedCorners, skin.cornerRounding, borderThickness, skin.normalColor)
 
     return setLastElement(x, y, width, height)
+}
+
+fun GUI.editImageButton(size: Float, action: () -> Unit): GUIElement {
+    val element = getLastElement()
+
+    Game.gui.offset(element.width - size * 1.25f, size * 0.25f) {
+        Game.gui.imageButton(Game.textures["assets/images/edit_tiletype.png"], size, action = action)
+    }
+
+    return element
+}
+
+fun GUI.multilineList(maxWidth: Float, spacing: Float, backgroundColor: Color? = null, nextElement: () -> (() -> GUIElement)?) = group(backgroundColor) {
+    var elementForNextLine: (() -> GUIElement)?
+
+    while (true) {
+        elementForNextLine = null
+
+        sameLine {
+            var width = 0.0f
+
+            spacing(spacing * 0.5f)
+
+            elementForNextLine?.let {
+                val elementWidth = it().width
+                spacing(spacing)
+                width += spacing + elementWidth
+            }
+
+            while (true) {
+                val element = nextElement()
+
+                if (element == null) {
+                    spacing(spacing * 0.5f)
+                    break
+                }
+
+                val elementWidth = getElementSize(element).width
+
+                if (width + spacing + elementWidth + spacing * 0.5f <= maxWidth) {
+                    element()
+                    spacing(spacing)
+                    width += spacing + elementWidth
+                } else {
+                    spacing(spacing * 0.5f)
+                    elementForNextLine = element
+                    break
+                }
+            }
+        }
+
+        if (elementForNextLine == null)
+            break
+    }
+}
+
+fun GUI.multilineListWithSameElementWidths(maxWidth: Float, elementWidth: Float, minSpacing: Float? = null, backgroundColor: Color? = null, nextElement: () -> (() -> GUIElement)?) = group(backgroundColor) {
+    val elementsPerLine = maxWidth.toInt() / (elementWidth + (minSpacing ?: 0.0f)).toInt() - 1
+    val elementSpacing = (maxWidth - (elementsPerLine + 1) * elementWidth) / elementsPerLine
+
+    var hasMoreElements = true
+
+    while (hasMoreElements) {
+        sameLine {
+            spacing(elementSpacing * 0.5f)
+
+            var count = 0
+            while (count++ < elementsPerLine) {
+                val element = nextElement()
+
+                if (element == null) {
+                    spacing(elementSpacing * 0.5f)
+                    hasMoreElements = false
+                    break
+                }
+
+                spacing(elementSpacing)
+                element()
+
+                if (count == elementsPerLine - 1)
+                    spacing(elementSpacing * 0.5f)
+            }
+        }
+    }
 }

@@ -724,13 +724,17 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
     /**
      * //TODO: Document
      */
-    fun popup(block: GUIPopup.(GUI, Float, Float) -> GUIElement) {
+    fun popup(block: GUIPopup.(GUI, Float, Float) -> GUIElement) = popup(object : GUIPopup() {
+        override fun draw(gui: GUI, width: Float, height: Float) = block(this, gui, width, height)
+    })
+
+    fun popup(popup: GUIPopup) {
         if (currentPopup != null) {
             Kore.log.error(this::class, "A popup is already open.")
             return
         }
 
-        currentPopup = GUIPopup(block)
+        currentPopup = popup
     }
 
     /**
@@ -823,13 +827,13 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
         if (isInteractionEnabled)
             currentPopup?.let {
                 val size = getElementSize {
-                    it.draw(it, this, 0.0f, 0.0f)
+                    it.draw(this, 0.0f, 0.0f)
                 }
 
                 transient {
                     setLastElement(absolute((Kore.graphics.safeWidth - size.width) * 0.5f, (Kore.graphics.safeHeight - size.height) * 0.5f))
                     isInteractionEnabledLocal = true
-                    it.draw(it, this, size.width, size.height)
+                    it.draw(this, size.width, size.height)
                     isInteractionEnabledLocal = false
                 }
 

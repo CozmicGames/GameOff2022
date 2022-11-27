@@ -1,33 +1,22 @@
 package game.level
 
 import com.cozmicgames.*
-import com.cozmicgames.graphics.Image
-import com.cozmicgames.graphics.gpu.Texture
-import com.cozmicgames.graphics.gpu.Texture2D
-import com.cozmicgames.graphics.split
-import com.cozmicgames.graphics.toTexture2D
-import com.cozmicgames.utils.Color
 import com.cozmicgames.utils.Disposable
-import com.cozmicgames.utils.extensions.extension
-import com.cozmicgames.utils.extensions.pathWithoutExtension
 import com.cozmicgames.utils.maths.Vector2
 import engine.Game
-import engine.graphics.TextureRegion
-import engine.graphics.asRegion
-import engine.graphics.font.HAlign
-import engine.graphics.ui.ComboboxData
-import engine.graphics.ui.DragDropData
-import engine.graphics.ui.TextData
-import engine.graphics.ui.drawLine
 import engine.graphics.ui.widgets.*
-import game.extensions.downButton
+import engine.materials.Material
 import game.extensions.materialPreview
+import game.extensions.minusButton
 import game.extensions.plusButton
-import game.extensions.upButton
-import kotlin.math.max
-import kotlin.math.min
 
 class TileTypeEditor : Disposable {
+    companion object {
+        private val EMPTY_MATERIAL = Material().also {
+            it.colorTexturePath = "assets/images/empty_tiletype.png"
+        }
+    }
+
     sealed interface ReturnState {
         object None : ReturnState
 
@@ -37,7 +26,11 @@ class TileTypeEditor : Disposable {
     }
 
     private val assetSelector = AssetSelector()
+    private val materialEditor = MaterialEditor()
     private val materialEditorScroll = Vector2()
+    private var currentMaterial: String? = null
+    private val ruleListScroll = Vector2()
+    private var currentRuleIndex: Int? = null
 
     fun drawTitle(setReturnState: (ReturnState) -> Unit) {
         val label = {
@@ -85,43 +78,71 @@ class TileTypeEditor : Disposable {
     }
 
     fun drawMaterialEditor(materialName: String) {
-        val material = Game.materials[materialName] ?: return
+        materialEditor.onFrame(materialName)
 
+        val panelWidth = materialEditor.width + Game.gui.skin.scrollbarSize + Game.gui.skin.elementPadding * 3.0f
+
+        Game.gui.setLastElement(Game.gui.absolute(Kore.graphics.width - panelWidth, Game.gui.skin.elementSize))
+
+        Game.gui.panel(panelWidth, Kore.graphics.height - Game.gui.skin.elementSize - Kore.graphics.height * Game.editorStyle.assetSelectionPanelHeight, materialEditorScroll, Game.editorStyle.panelContentBackgroundColor, Game.editorStyle.panelTitleBackgroundColor, {
+            Game.gui.label("Material Editor", null)
+        }) {
+            materialEditor.onFrame(materialName)
+        }
+    }
+
+    fun drawRuleList(tileType: TileSet.TileType) {
         var width = 0.0f
 
-        val drawEditor = {
-            //Game.gui.panel(width, Kore.graphics.height - Game.gui.skin.elementSize - Kore.graphics.height * Game.editorStyle.assetSelectionPanelHeight, materialEditorScroll, Game.editorStyle.panelContentBackgroundColor, Game.editorStyle.panelTitleBackgroundColor, {
-            //    Game.gui.label("Material Editor", null)
-            //}) {
-            //}
+        val drawList = {
+            Game.gui.group {
+                Game.gui.label("Default", minWidth = width, backgroundColor = Game.editorStyle.panelTitleBackgroundColor)
 
-
-            Game.gui.group(Game.editorStyle.panelContentBackgroundColor) {
-                Game.gui.group(Game.editorStyle.panelTitleBackgroundColor, width) { Game.gui.label("Material", null) }
-                Game.gui.materialPreview(material, Kore.graphics.width * Game.editorStyle.materialEditorPreviewSize)
-                Game.gui.separator(width)
-
-                Game.gui.group(Game.editorStyle.panelTitleBackgroundColor, width) { Game.gui.label("Texture", null) }
-                Game.gui.droppable<AssetSelector.TextureAsset>({ material.colorTexturePath = it.name }, 2.0f) {
-                    Game.gui.tooltip(Game.gui.label(material.colorTexturePath, null, maxWidth = width), material.colorTexturePath)
+                Game.gui.selectable({
+                    Game.gui.materialPreview(Game.materials[tileType.defaultMaterial] ?: EMPTY_MATERIAL, Game.editorStyle.toolImageSize)
+                }, currentRuleIndex == -1) {
+                    currentRuleIndex = -1
+                    currentMaterial = tileType.defaultMaterial
                 }
+
                 Game.gui.separator(width)
 
-                Game.gui.group(Game.editorStyle.panelTitleBackgroundColor, width) { Game.gui.label("Shader", null) }
-                Game.gui.droppable<AssetSelector.ShaderAsset>({ material.shader = it.name }) {
-                    Game.gui.tooltip(Game.gui.label(material.shader, null, maxWidth = width), material.shader)
+                tileType.rules.forEachIndexed { index, rule ->
+                    Game.gui.selectable({
+                        Game.gui.materialPreview(Game.materials[rule.material] ?: EMPTY_MATERIAL, Game.editorStyle.toolImageSize)
+                    }, currentRuleIndex == index) {
+                        currentRuleIndex = index
+                        currentMaterial = rule.material
+                    }
                 }
-                Game.gui.separator(width)
 
-                Game.gui.group(Game.editorStyle.panelTitleBackgroundColor, width) { Game.gui.label("Color", null) }
-                Game.gui.colorEdit(material.color)
+                Game.gui.plusButton(Game.editorStyle.toolImageSize) {
+                    tileType.addRule()
+                }
+
+                currentRuleIndex?.let {
+                    Game.gui.minusButton {
+                        val rule = tileType.rules.getOrNull(it)
+                        rule?.let {
+                            tileType.remove(it)
+                            currentMaterial = null
+                        }
+                    }
+                }
             }
         }
 
-        width = Game.gui.getElementSize(drawEditor).width
+        width = Game.gui.getElementSize(drawList).width
 
-        Game.gui.setLastElement(Game.gui.absolute(Kore.graphics.width - width, Game.gui.skin.elementSize))
-        drawEditor()
+        val panelWidth = width + Game.gui.skin.scrollbarSize + Game.gui.skin.elementPadding * 3.0f
+
+        Game.gui.setLastElement(Game.gui.absolute(0.0f, Game.gui.skin.elementSize))
+
+        Game.gui.panel(panelWidth, Kore.graphics.height - Game.gui.skin.elementSize - Kore.graphics.height * Game.editorStyle.assetSelectionPanelHeight, ruleListScroll, Game.editorStyle.panelContentBackgroundColor, Game.editorStyle.panelTitleBackgroundColor, {
+            Game.gui.label("Autotile Rules", null)
+        }) {
+            drawList()
+        }
     }
 
     fun onFrame(editTileTypeName: String, tileSetName: String): ReturnState {
@@ -143,7 +164,11 @@ class TileTypeEditor : Disposable {
             returnState = it
         }
 
-        drawMaterialEditor(Game.materials.names.first())
+        drawRuleList(tileType)
+
+        currentMaterial?.let {
+            drawMaterialEditor(it)
+        }
 
         assetSelector.drawAssetSelectionPanel(Game.gui)
 
