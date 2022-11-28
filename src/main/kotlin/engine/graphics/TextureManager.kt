@@ -11,13 +11,8 @@ import engine.Game
 import kotlin.reflect.KProperty
 
 class TextureManager : Disposable {
-    inner class Getter(private val fileHandle: FileHandle, filter: Texture.Filter) {
-        init {
-            if (fileHandle !in this@TextureManager)
-                add(fileHandle, filter)
-        }
-
-        operator fun getValue(thisRef: Any, property: KProperty<*>) = get(fileHandle)
+    inner class Getter(val fileHandle: FileHandle, val name: String, val filter: Texture.Filter) {
+        operator fun getValue(thisRef: Any, property: KProperty<*>) = getOrAdd(fileHandle, name, filter)
     }
 
     data class TextureKey(val filter: Texture.Filter)
@@ -27,27 +22,27 @@ class TextureManager : Disposable {
 
     val names get() = keys.keys.toList()
 
-    fun add(fileHandle: FileHandle, filter: Texture.Filter = Texture.Filter.NEAREST) {
-        val image = if (fileHandle.exists)
-            Kore.graphics.readImage(fileHandle)
+    fun add(file: FileHandle, name: String = file.fullPath, filter: Texture.Filter = Texture.Filter.NEAREST) {
+        val image = if (file.exists)
+            Kore.graphics.readImage(file)
         else {
-            Kore.log.error(this::class, "Texture file not found: $fileHandle")
+            Kore.log.error(this::class, "Texture file not found: $file")
             return
         }
 
         if (image == null) {
-            Kore.log.error(this::class, "Failed to load texture file: $fileHandle")
+            Kore.log.error(this::class, "Failed to load texture file: $file")
             return
         }
 
-        add(fileHandle.fullPath, image, filter)
+        add(name, image, filter)
     }
 
-    fun add(file: String, image: Image, filter: Texture.Filter = Texture.Filter.NEAREST) {
+    fun add(name: String, image: Image, filter: Texture.Filter = Texture.Filter.NEAREST) {
         val key = TextureKey(filter)
         val atlas = getAtlas(key)
-        atlas.add(file to image)
-        keys[file] = key
+        atlas.add(name to image)
+        keys[name] = key
     }
 
     operator fun contains(file: FileHandle) = contains(file.fullPath)
@@ -74,9 +69,9 @@ class TextureManager : Disposable {
         return texture[name] ?: returnMissing()
     }
 
-    fun getOrAdd(fileHandle: FileHandle, filter: Texture.Filter = Texture.Filter.NEAREST): TextureRegion {
+    fun getOrAdd(fileHandle: FileHandle, name: String = fileHandle.fullPath, filter: Texture.Filter = Texture.Filter.NEAREST): TextureRegion {
         if (fileHandle !in this)
-            add(fileHandle, filter)
+            add(fileHandle, name, filter)
 
         return this[fileHandle]
     }
@@ -96,5 +91,5 @@ class TextureManager : Disposable {
         }
     }
 
-    operator fun invoke(fileHandle: FileHandle, filter: Texture.Filter = Texture.Filter.NEAREST) = Getter(fileHandle, filter)
+    operator fun invoke(fileHandle: FileHandle, name: String = fileHandle.fullPath, filter: Texture.Filter = Texture.Filter.NEAREST) = Getter(fileHandle, name, filter)
 }

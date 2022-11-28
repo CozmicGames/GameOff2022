@@ -8,19 +8,19 @@ import com.cozmicgames.utils.Properties
 import kotlin.reflect.KProperty
 
 class TileSetManager {
-    companion object{
+    companion object {
         private val EMPTY = TileSet()
     }
 
-    inner class Getter(val file: FileHandle) {
-        operator fun getValue(thisRef: Any, property: KProperty<*>) = getOrAdd(file)
+    inner class Getter(val file: FileHandle, val name: String) {
+        operator fun getValue(thisRef: Any, property: KProperty<*>) = getOrAdd(file, name)
     }
 
     private val tileSets = hashMapOf<String, TileSet>()
 
     val names get() = tileSets.keys.toList()
 
-    fun add(file: FileHandle) {
+    fun add(file: FileHandle, name: String = file.fullPath) {
         if (!file.exists) {
             Kore.log.error(this::class, "Tileset file not found: $file")
             return
@@ -35,7 +35,7 @@ class TileSetManager {
             return
         }
 
-        add(file.fullPath, tileSet)
+        add(name, tileSet)
     }
 
     fun add(name: String, tileSet: TileSet) {
@@ -58,12 +58,12 @@ class TileSetManager {
         return tileSets[name] ?: EMPTY
     }
 
-    fun getOrAdd(file: FileHandle): TileSet {
-        if (file !in this)
-            add(file)
+    fun getOrAdd(file: FileHandle, name: String = file.fullPath): TileSet {
+        if (name !in this)
+            add(file, name)
 
-        return this[file]
+        return this[name]
     }
 
-    operator fun invoke(file: FileHandle) = Getter(file)
+    operator fun invoke(file: FileHandle, name: String) = Getter(file, name)
 }

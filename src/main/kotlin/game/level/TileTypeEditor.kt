@@ -10,7 +10,7 @@ import game.extensions.materialPreview
 import game.extensions.minusButton
 import game.extensions.plusButton
 
-class TileTypeEditor : Disposable {
+class TileTypeEditor {
     companion object {
         private val EMPTY_MATERIAL = Material().also {
             it.colorTexturePath = "assets/images/empty_tiletype.png"
@@ -121,7 +121,7 @@ class TileTypeEditor : Disposable {
                 }
 
                 currentRuleIndex?.let {
-                    Game.gui.minusButton {
+                    Game.gui.minusButton(Game.editorStyle.toolImageSize) {
                         val rule = tileType.rules.getOrNull(it)
                         rule?.let {
                             tileType.remove(it)
@@ -175,9 +175,5 @@ class TileTypeEditor : Disposable {
         Game.gui.end()
 
         return returnState
-    }
-
-    override fun dispose() {
-        assetSelector.dispose()
     }
 }

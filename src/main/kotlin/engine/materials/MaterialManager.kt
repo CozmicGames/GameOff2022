@@ -7,15 +7,15 @@ import com.cozmicgames.log
 import kotlin.reflect.KProperty
 
 class MaterialManager {
-    inner class Getter(val file: FileHandle) {
-        operator fun getValue(thisRef: Any, property: KProperty<*>) = getOrAdd(file)
+    inner class Getter(private val file: FileHandle, private val name: String) {
+        operator fun getValue(thisRef: Any, property: KProperty<*>) = getOrAdd(file, name)
     }
 
     private val materials = hashMapOf<String, Material>()
 
     val names get() = materials.keys.toList()
 
-    fun add(file: FileHandle) {
+    fun add(file: FileHandle, name: String = file.fullPath) {
         if (!file.exists) {
             Kore.log.error(this::class, "Material file not found: $file")
             return
@@ -30,7 +30,7 @@ class MaterialManager {
             return
         }
 
-        add(file.fullPath, material)
+        add(name, material)
     }
 
     fun add(name: String, material: Material) {
@@ -53,13 +53,13 @@ class MaterialManager {
         return materials[name]
     }
 
-    fun getOrAdd(file: FileHandle): Material {
-        if (file !in this)
-            add(file)
+    fun getOrAdd(file: FileHandle, name: String = file.fullPath): Material {
+        if (name !in this)
+            add(file, name)
 
-        return requireNotNull(this[file])
+        return requireNotNull(this[name])
     }
 
-    operator fun invoke(file: FileHandle) = Getter(file)
+    operator fun invoke(file: FileHandle, name: String = file.fullPath) = Getter(file, name)
 
 }

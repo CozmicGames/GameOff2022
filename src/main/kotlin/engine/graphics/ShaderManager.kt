@@ -9,8 +9,8 @@ import engine.graphics.shaders.Shader
 import kotlin.reflect.KProperty
 
 class ShaderManager : Disposable {
-    inner class Getter(val file: FileHandle) {
-        operator fun getValue(thisRef: Any, property: KProperty<*>) = getOrAdd(file)
+    inner class Getter(val file: FileHandle, val name: String) {
+        operator fun getValue(thisRef: Any, property: KProperty<*>) = getOrAdd(file, name)
     }
 
     private val shaders = hashMapOf<String, Shader>()
@@ -21,7 +21,7 @@ class ShaderManager : Disposable {
         add("default", DefaultShader)
     }
 
-    fun add(file: FileHandle) {
+    fun add(file: FileHandle, name: String = file.fullPath) {
         if (!file.exists) {
             Kore.log.error(this::class, "Shader file not found: $file")
             return
@@ -34,7 +34,7 @@ class ShaderManager : Disposable {
             return
         }
 
-        add(file.fullPath, shader)
+        add(name, shader)
     }
 
     fun add(name: String, shader: Shader) {
@@ -57,18 +57,18 @@ class ShaderManager : Disposable {
         return shaders[name]
     }
 
-    fun getOrAdd(file: FileHandle): Shader {
-        if (file !in this)
-            add(file)
+    fun getOrAdd(file: FileHandle, name: String = file.fullPath): Shader {
+        if (name !in this)
+            add(file, name)
 
-        return requireNotNull(this[file])
+        return requireNotNull(this[name])
     }
-
-    operator fun invoke(file: FileHandle) = Getter(file)
 
     override fun dispose() {
         shaders.forEach { (_, shader) ->
             (shader as? Disposable)?.dispose()
         }
     }
+
+    operator fun invoke(file: FileHandle, name: String = file.fullPath) = Getter(file, name)
 }

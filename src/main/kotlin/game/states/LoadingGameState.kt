@@ -8,6 +8,7 @@ import com.cozmicgames.graphics
 import com.cozmicgames.utils.Color
 import com.cozmicgames.utils.Properties
 import com.cozmicgames.utils.durationOf
+import com.cozmicgames.utils.extensions.nameWithExtension
 import engine.Game
 import engine.GameState
 import engine.graphics.ui.GUI
@@ -28,7 +29,8 @@ class LoadingGameState : GameState {
     override fun onCreate() {
         fun searchDirectory(directoryFile: FileHandle) {
             directoryFile.list {
-                val file = Kore.files.asset(it)
+                val file = directoryFile.child(it)
+
                 if (file.isDirectory)
                     searchDirectory(file)
                 else {
@@ -54,6 +56,7 @@ class LoadingGameState : GameState {
         }
 
         searchDirectory(Kore.files.asset("assets"))
+        searchDirectory(Kore.files.local("assets"))
 
         Game.textures.add(Kore.files.asset("icons/icon.png"))
 

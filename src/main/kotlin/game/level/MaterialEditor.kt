@@ -6,6 +6,8 @@ import com.cozmicgames.utils.Color
 import engine.Game
 import engine.graphics.ui.TextData
 import engine.graphics.ui.widgets.*
+import game.assets.types.ShaderAssetType
+import game.assets.types.TextureAssetType
 import game.extensions.materialPreview
 
 class MaterialEditor {
@@ -41,13 +43,13 @@ class MaterialEditor {
                 Game.gui.separator(width)
 
                 Game.gui.label("Texture", Game.editorStyle.panelTitleBackgroundColor, minWidth = width)
-                Game.gui.droppable<AssetSelector.TextureAsset>({ material.colorTexturePath = it.name }, 2.0f) {
+                Game.gui.droppable<TextureAssetType.TextureAsset>({ material.colorTexturePath = it.name }, 2.0f) {
                     Game.gui.tooltip(Game.gui.label(material.colorTexturePath, null, maxWidth = width), material.colorTexturePath)
                 }
                 Game.gui.separator(width)
 
                 Game.gui.label("Shader", Game.editorStyle.panelTitleBackgroundColor, minWidth = width)
-                Game.gui.droppable<AssetSelector.ShaderAsset>({ material.shader = it.name }) {
+                Game.gui.droppable<ShaderAssetType.ShaderAsset>({ material.shader = it.name }, 2.0f) {
                     Game.gui.tooltip(Game.gui.label(material.shader, null, maxWidth = width), material.shader)
                 }
                 Game.gui.separator(width)

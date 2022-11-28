@@ -20,6 +20,7 @@ import engine.materials.MaterialManager
 import engine.physics.Physics
 import engine.scene.SceneManager
 import engine.utils.Rumble
+import game.assets.AssetManager
 import game.level.TileSetManager
 import game.states.LoadingGameState
 
@@ -29,8 +30,8 @@ object Game : Application {
     val fonts by Kore.context.injector(true) { FontManager() }
     val shaders by Kore.context.injector(true) { ShaderManager() }
     val materials by Kore.context.injector(true) { MaterialManager() }
-    val scenes by Kore.context.injector(true) { SceneManager() }
     val tileSets by Kore.context.injector(true) { TileSetManager() }
+    val assets by Kore.context.injector(true) { AssetManager() }
 
     val controls by Kore.context.injector(true) { ControlManager() }
     val graphics2d by Kore.context.injector(true) { Graphics2D() }

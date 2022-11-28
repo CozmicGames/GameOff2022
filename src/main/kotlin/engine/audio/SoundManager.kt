@@ -9,15 +9,15 @@ import com.cozmicgames.utils.Disposable
 import kotlin.reflect.KProperty
 
 class SoundManager : Disposable {
-    inner class Getter(val file: FileHandle) {
-        operator fun getValue(thisRef: Any, property: KProperty<*>) = getOrAdd(file)
+    inner class Getter(val file: FileHandle, val name: String) {
+        operator fun getValue(thisRef: Any, property: KProperty<*>) = getOrAdd(file, name)
     }
 
     private val sounds = hashMapOf<String, Sound>()
 
     val names get() = sounds.keys.toList()
 
-    fun add(file: FileHandle) {
+    fun add(file: FileHandle, name: String = file.fullPath) {
         if (!file.exists) {
             Kore.log.error(this::class, "Sound file not found: $file")
             return
@@ -30,7 +30,7 @@ class SoundManager : Disposable {
             return
         }
 
-        add(file.fullPath, sound)
+        add(name, sound)
     }
 
     fun add(name: String, sound: Sound) {
@@ -53,11 +53,11 @@ class SoundManager : Disposable {
         return sounds[name]
     }
 
-    fun getOrAdd(file: FileHandle): Sound {
-        if (file !in this)
-            add(file)
+    fun getOrAdd(file: FileHandle, name: String = file.fullPath): Sound {
+        if (name !in this)
+            add(file, name)
 
-        return requireNotNull(this[file])
+        return requireNotNull(this[name])
     }
 
     override fun dispose() {
@@ -66,5 +66,5 @@ class SoundManager : Disposable {
         }
     }
 
-    operator fun invoke(file: FileHandle) = Getter(file)
+    operator fun invoke(file: FileHandle, name: String) = Getter(file, name)
 }

@@ -23,6 +23,7 @@ import engine.utils.FreeCameraControllerComponent
 import game.components.CameraComponent
 import game.components.GridComponent
 import game.components.getCellType
+import game.extensions.editable
 import game.extensions.plusButton
 import kotlin.math.ceil
 import kotlin.math.floor
@@ -342,21 +343,14 @@ class LevelEditor(val scene: Scene) {
                     val tileType = tileSet[name]
                     val isSelected = currentType == name
 
-                    Game.gui.transient {
-                        Game.gui.layerUp {
-                            val editTextureSize = Game.editorStyle.toolImageSize * 1.0f / 3.0f
-                            Game.gui.offset(Game.editorStyle.toolImageSize - editTextureSize * 1.25f, editTextureSize * 0.25f) {
-                                Game.gui.imageButton(Game.textures["assets/images/edit_tiletype.png"], editTextureSize, editTextureSize) {
-                                    setReturnState(ReturnState.EditTileType(name, grid.tileSet))
-                                }
-                            }
+                    Game.gui.editable({
+                        val texture = Game.textures[Game.materials[tileType.defaultMaterial]?.colorTexturePath ?: "<missing>"]
+
+                        Game.gui.selectableImage(texture, Game.editorStyle.toolImageSize, Game.editorStyle.toolImageSize, isSelected) {
+                            currentType = name
                         }
-                    }
-
-                    val texture = Game.textures[Game.materials[tileType.defaultMaterial]?.colorTexturePath ?: "<missing>"]
-
-                    Game.gui.selectableImage(texture, Game.editorStyle.toolImageSize, Game.editorStyle.toolImageSize, isSelected) {
-                        currentType = name
+                    }, Game.editorStyle.toolImageSize * 1.0f / 3.0f) {
+                        setReturnState(ReturnState.EditTileType(name, grid.tileSet))
                     }
                 }
 

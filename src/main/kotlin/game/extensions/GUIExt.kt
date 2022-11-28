@@ -12,61 +12,6 @@ import game.level.editorStyle
 import java.lang.Float.min
 import kotlin.math.sqrt
 
-fun GUI.plusButton(width: Float = skin.elementSize, height: Float = width, action: () -> Unit): GUIElement {
-    val (x, y) = getLastElement()
-
-    val rectangle = Rectangle()
-    rectangle.x = x
-    rectangle.y = y
-    rectangle.width = width
-    rectangle.height = height
-
-    val state = getState(rectangle, GUI.TouchBehaviour.ONCE_UP)
-    val plusThickness = min(width, height) * 0.2f
-    val borderSize = min(width, height) / skin.elementSize
-
-    val color = if (GUI.State.ACTIVE in state) {
-        action()
-        skin.highlightColor
-    } else if (GUI.State.HOVERED in state)
-        skin.hoverColor
-    else
-        skin.normalColor
-
-    currentCommandList.drawRect(rectangle.x, rectangle.y, rectangle.width, rectangle.height, skin.roundedCorners, skin.cornerRounding, borderSize, color)
-    currentCommandList.drawRectFilled(rectangle.centerX - plusThickness * 0.5f, rectangle.y + plusThickness, plusThickness, rectangle.height - plusThickness * 2.0f, skin.roundedCorners, skin.cornerRounding, color)
-    currentCommandList.drawRectFilled(rectangle.x + plusThickness, rectangle.centerY - plusThickness * 0.5f, rectangle.width - plusThickness * 2.0f, plusThickness, skin.roundedCorners, skin.cornerRounding, color)
-
-    return setLastElement(x, y, width, height)
-}
-
-fun GUI.minusButton(width: Float = skin.elementSize, height: Float = width, action: () -> Unit): GUIElement {
-    val (x, y) = getLastElement()
-
-    val rectangle = Rectangle()
-    rectangle.x = x
-    rectangle.y = y
-    rectangle.width = width
-    rectangle.height = height
-
-    val state = getState(rectangle, GUI.TouchBehaviour.ONCE_UP)
-    val plusThickness = min(width, height) * 0.2f
-    val borderSize = min(width, height) / skin.elementSize
-
-    val color = if (GUI.State.ACTIVE in state) {
-        action()
-        skin.highlightColor
-    } else if (GUI.State.HOVERED in state)
-        skin.hoverColor
-    else
-        skin.normalColor
-
-    currentCommandList.drawRect(rectangle.x, rectangle.y, rectangle.width, rectangle.height, skin.roundedCorners, skin.cornerRounding, borderSize, color)
-    currentCommandList.drawRectFilled(rectangle.x + plusThickness, rectangle.centerY - plusThickness * 0.5f, rectangle.width - plusThickness * 2.0f, plusThickness, skin.roundedCorners, skin.cornerRounding, color)
-
-    return setLastElement(x, y, width, height)
-}
-
 fun GUI.upButton(width: Float = skin.elementSize, height: Float = width, action: () -> Unit): GUIElement {
     val (x, y) = getLastElement()
 
@@ -154,14 +99,18 @@ fun GUI.materialPreview(material: Material, width: Float = skin.elementSize, hei
     return setLastElement(x, y, width, height)
 }
 
-fun GUI.editImageButton(size: Float, action: () -> Unit): GUIElement {
-    val element = getLastElement()
+fun GUI.editable(element: () -> GUIElement, size: Float, action: () -> Unit): GUIElement {
+    val elementWidth = getElementSize(element).width
 
-    Game.gui.offset(element.width - size * 1.25f, size * 0.25f) {
-        Game.gui.imageButton(Game.textures["assets/images/edit_tiletype.png"], size, action = action)
+    transient {
+        layerUp {
+            offset(elementWidth - size * 1.25f, size * 0.25f) {
+                imageButton(Game.textures["assets/images/edit_tiletype.png"], size, action = action)
+            }
+        }
     }
 
-    return element
+    return element()
 }
 
 fun GUI.multilineList(maxWidth: Float, spacing: Float, backgroundColor: Color? = null, nextElement: () -> (() -> GUIElement)?) = group(backgroundColor) {
@@ -237,3 +186,9 @@ fun GUI.multilineListWithSameElementWidths(maxWidth: Float, elementWidth: Float,
         }
     }
 }
+
+fun GUI.importButton(width: Float, height: Float = width, action: () -> Unit) = imageButton(Game.textures["assets/images/import_button.png"], width, height, action)
+
+fun GUI.plusButton(width: Float, height: Float = width, action: () -> Unit) = imageButton(Game.textures["assets/images/plus_button.png"], width, height, action)
+
+fun GUI.minusButton(width: Float, height: Float = width, action: () -> Unit) = imageButton(Game.textures["assets/images/minus_button.png"], width, height, action)
