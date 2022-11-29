@@ -19,7 +19,7 @@ import engine.graphics.ui.widgets.*
 import engine.scene.Scene
 import engine.scene.findGameObjectByComponent
 import engine.scene.findGameObjectsWithComponent
-import engine.utils.FreeCameraControllerComponent
+import game.components.FreeCameraControllerComponent
 import game.components.CameraComponent
 import game.components.GridComponent
 import game.components.getCellType
@@ -38,16 +38,16 @@ class LevelEditor(val scene: Scene) {
     }
 
     private enum class ToolType(val texture: String) {
-        PENCIL("assets/images/pencil_tool.png"),
-        DELETE("assets/images/delete_tool.png"),
-        SELECT("assets/images/select_tool.png"),
-        PICK("assets/images/pick_tool.png"),
-        FILL("assets/images/fill_tool.png"),
-        UNDO("assets/images/undo_tool.png"),
-        REDO("assets/images/redo_tool.png"),
-        COPY("assets/images/copy_tool.png"),
-        PASTE("assets/images/paste_tool.png"),
-        SETTINGS("assets/images/settings.png")
+        PENCIL("internal/images/pencil_tool.png"),
+        DELETE("internal/images/delete_tool.png"),
+        SELECT("internal/images/select_tool.png"),
+        PICK("internal/images/pick_tool.png"),
+        FILL("internal/images/fill_tool.png"),
+        UNDO("internal/images/undo_tool.png"),
+        REDO("internal/images/redo_tool.png"),
+        COPY("internal/images/copy_tool.png"),
+        PASTE("internal/images/paste_tool.png"),
+        SETTINGS("internal/images/settings.png")
     }
 
     private val commandExecutor = EditorCommandExecutor()
@@ -157,7 +157,7 @@ class LevelEditor(val scene: Scene) {
     }
 
     private fun drawBackground(grid: GridComponent, camera: OrthographicCamera) {
-        val backgroundTexture = Game.textures["assets/images/grid_background_8x8.png"]
+        val backgroundTexture = Game.textures["internal/images/grid_background_8x8.png"]
 
         val backgroundTileWidth = 8 * grid.cellSize
         val backgroundTileHeight = 8 * grid.cellSize

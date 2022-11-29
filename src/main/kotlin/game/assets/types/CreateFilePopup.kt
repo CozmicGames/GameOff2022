@@ -1,5 +1,8 @@
 package game.assets.types
 
+import com.cozmicgames.Kore
+import com.cozmicgames.files
+import com.cozmicgames.files.nameWithoutExtension
 import engine.Game
 import engine.graphics.font.HAlign
 import engine.graphics.ui.GUI
@@ -7,6 +10,7 @@ import engine.graphics.ui.GUIElement
 import engine.graphics.ui.GUIPopup
 import engine.graphics.ui.TextData
 import engine.graphics.ui.widgets.*
+import game.assets.MetaFile
 import game.level.editorStyle
 
 class CreateFilePopup : GUIPopup() {
@@ -29,14 +33,19 @@ class CreateFilePopup : GUIPopup() {
 
                     val cancelButtonSize = if (width > 0.0f) gui.getElementSize(cancelButton).width else 0.0f
 
-                    val importButton = {
+                    val createButton = {
                         gui.textButton("Create") {
                             onCreate(nameTextData.text)
+
+                            val assetFile = Kore.files.local("assets/${nameTextData.text}")
+                            val metaFile = MetaFile()
+                            metaFile.name = nameTextData.text
+                            metaFile.write(assetFile.sibling("${assetFile.nameWithoutExtension}.meta"))
                             closePopup()
                         }
                     }
 
-                    val importButtonSize = if (width > 0.0f) gui.getElementSize(importButton).width else 0.0f
+                    val createButtonSize = if (width > 0.0f) gui.getElementSize(createButton).width else 0.0f
 
                     gui.label("Create file", Game.editorStyle.createFilePopupTitleBackgroundColor, minWidth = if (width > 0.0f) width else null, align = HAlign.CENTER)
 
@@ -45,8 +54,8 @@ class CreateFilePopup : GUIPopup() {
                     gui.group(Game.editorStyle.createFilePopupTitleBackgroundColor) {
                         gui.sameLine {
                             cancelButton()
-                            gui.spacing(width - cancelButtonSize - importButtonSize)
-                            importButton()
+                            gui.spacing(width - cancelButtonSize - createButtonSize)
+                            createButton()
                         }
                     }
                 }

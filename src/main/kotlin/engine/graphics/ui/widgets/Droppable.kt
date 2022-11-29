@@ -9,8 +9,8 @@ import kotlin.reflect.KClass
 
 /**
  * Marks the element returned by [block] as droppable.
- * If there is currently a [DragDropData] instance active and it's payload is an instance of [acceptedType], it can be dropped to this.
- * Also if there are externally dropped elements inside the bounds of the element returned by [block] and [acceptedType] allows it, they can be dropped to this.
+ * If there is currently a [DragDropData] instance active, and it's payload is an instance of [acceptedType], it can be dropped to this.
+ * Also, if there are externally dropped elements inside the bounds of the element returned by [block] and [acceptedType] allows it, they can be dropped to this.
  * For this, [acceptedType] needs to be a [List] of strings or [String], for which only the first element will be dropped.
  *
  * If there is something dropped to this, the function will call [onDrop] with the dropped element.

@@ -3,7 +3,6 @@ package engine.graphics.ui.layout
 import com.cozmicgames.utils.Disposable
 import com.cozmicgames.utils.maths.Vector2
 import engine.graphics.ui.GUI
-import engine.graphics.ui.GUIElement
 import engine.graphics.ui.widgets.panel
 
 class GUIRegion(val gui: GUI, private val ownsGUI: Boolean = false) : Disposable {

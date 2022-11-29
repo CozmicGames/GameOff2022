@@ -1,11 +1,10 @@
-package engine.utils
+package game.components
 
 import com.cozmicgames.utils.Properties
 import com.cozmicgames.utils.Updateable
 import engine.Game
 import engine.scene.Component
 import engine.scene.components.TransformComponent
-import game.components.CameraComponent
 import kotlin.math.max
 
 class FreeCameraControllerComponent : Component(), Updateable {

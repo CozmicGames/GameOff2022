@@ -3,6 +3,8 @@ package game.assets
 import com.cozmicgames.Kore
 import com.cozmicgames.files
 import com.cozmicgames.files.FileHandle
+import com.cozmicgames.files.extension
+import com.cozmicgames.log
 import com.cozmicgames.utils.Disposable
 import game.assets.types.*
 
@@ -30,6 +32,21 @@ class AssetManager : Disposable {
     fun findAssetType(predicate: (AssetType<*>) -> Boolean) = registeredAssetTypes.find(predicate)
 
     fun findOrRegisterAssetType(predicate: (AssetType<*>) -> Boolean, block: () -> AssetType<*>) = findAssetType(predicate) ?: registerAssetType(block())
+
+    fun load(file: FileHandle) {
+        val type = findAssetType { file.extension in it.supportedFormats } ?: return
+        load(file, type)
+    }
+
+    fun load(file: FileHandle, typeName: String) {
+        val type = findAssetType(typeName) ?: return
+        load(file, type)
+    }
+
+    fun load(file: FileHandle, type: AssetType<*>) {
+        Kore.log.info(this::class, "Loading asset (${type.name}): $file")
+        type.load(file)
+    }
 
     fun importFile(file: FileHandle, destFile: FileHandle): FileHandle {
         file.copyTo(destFile)

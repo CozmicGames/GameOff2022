@@ -784,7 +784,7 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
 
     /**
      * Returns an [GUIVisibility] instance that contains every element that's been added until the invocation of this method.
-     * This can be used to check if a point is outside of any GUI elements.
+     * This can be used to check if a point is outside any GUI elements.
      *
      * @return The computed [GUIVisibility].
      */

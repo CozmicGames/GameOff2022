@@ -3,6 +3,8 @@ package game.assets.types
 import com.cozmicgames.Kore
 import com.cozmicgames.dialogs
 import com.cozmicgames.files
+import com.cozmicgames.files.FileHandle
+import com.cozmicgames.files.nameWithoutExtension
 import com.cozmicgames.graphics
 import com.cozmicgames.graphics.Image
 import com.cozmicgames.graphics.gpu.Texture
@@ -12,13 +14,13 @@ import com.cozmicgames.graphics.toTexture2D
 import com.cozmicgames.utils.Color
 import com.cozmicgames.utils.Disposable
 import com.cozmicgames.utils.extensions.extension
-import com.cozmicgames.utils.extensions.nameWithExtension
-import com.cozmicgames.utils.extensions.pathWithoutExtension
+import com.cozmicgames.utils.extensions.nameWithoutExtension
 import engine.Game
 import engine.graphics.asRegion
 import engine.graphics.ui.*
 import engine.graphics.ui.widgets.*
 import game.assets.AssetType
+import game.assets.TextureMetaFile
 import game.extensions.downButton
 import game.extensions.importButton
 import game.extensions.upButton
@@ -69,7 +71,7 @@ class TextureAssetType : AssetType<TextureAssetType>, Disposable {
 
         override fun reset(file: String) {
             this.file = file
-            nameTextData.setText(file.nameWithExtension)
+            nameTextData.setText(file.nameWithoutExtension)
 
             previewTexture?.dispose()
             image = requireNotNull(Kore.graphics.readImage(Kore.files.absolute(file)))
@@ -94,9 +96,13 @@ class TextureAssetType : AssetType<TextureAssetType>, Disposable {
                 val previewImageWidth = Game.editorStyle.imageImportPreviewSize * min(Kore.graphics.width, Kore.graphics.height)
                 val previewImageHeight = previewImageWidth * image.height.toFloat() / image.width.toFloat()
 
-                gui.image(it.asRegion(), previewImageWidth, previewImageHeight, borderThickness = 0.0f)
-
                 val (linesX, linesY) = gui.getLastElement()
+
+                val previewImageOffset = (width - previewImageWidth) * 0.5f
+
+                gui.offset(previewImageOffset, 0.0f, resetX = true) {
+                    gui.image(it.asRegion(), previewImageWidth, previewImageHeight, borderThickness = 0.0f)
+                }
 
                 if (splitToTiles) {
                     val linesHorizontal = image.width / tileWidth - 1
@@ -106,13 +112,13 @@ class TextureAssetType : AssetType<TextureAssetType>, Disposable {
                     val lineSpacingVertical = previewImageHeight / (linesVertical + 1)
 
                     repeat(linesHorizontal) {
-                        val x = linesX + (it + 1) * lineSpacingHorizontal
+                        val x = previewImageOffset + linesX + (it + 1) * lineSpacingHorizontal
                         gui.currentCommandList.drawLine(x, linesY, x, linesY + previewImageHeight, 2.5f, gui.skin.fontColor)
                     }
 
                     repeat(linesVertical) {
                         val y = linesY + (it + 1) * lineSpacingVertical
-                        gui.currentCommandList.drawLine(linesX, y, linesX + previewImageWidth, y, 2.5f, gui.skin.fontColor)
+                        gui.currentCommandList.drawLine(previewImageOffset + linesX, y, previewImageOffset + linesX + previewImageWidth, y, 2.5f, gui.skin.fontColor)
                     }
                 }
             }
@@ -179,7 +185,7 @@ class TextureAssetType : AssetType<TextureAssetType>, Disposable {
                     repeat(images.height) { y ->
                         images[x, y]?.let {
                             if (!(excludeEmptyImages && it.pixels.data.all { it.data.all { it == 0.0f } })) {
-                                val imageFileName = "${nameTextData.text.pathWithoutExtension}_${x}_${y}.${file.extension}"
+                                val imageFileName = "${nameTextData.text}_${x}_${y}.${file.extension}"
                                 val assetFile = Game.assets.getAssetFileHandle(imageFileName)
 
                                 if (assetFile.exists)
@@ -187,7 +193,10 @@ class TextureAssetType : AssetType<TextureAssetType>, Disposable {
 
                                 Kore.graphics.writeImage(assetFile, it)
 
-                                //TODO: Write filter when meta files are added and the load from this location
+                                val metaFile = TextureMetaFile()
+                                metaFile.name = imageFileName
+                                metaFile.filter = selectedFilter
+                                metaFile.write(assetFile.sibling("${assetFile.nameWithoutExtension}.meta"))
 
                                 Game.textures.add(imageFileName, it, selectedFilter)
                             }
@@ -217,7 +226,9 @@ class TextureAssetType : AssetType<TextureAssetType>, Disposable {
 
     override val name = AssetTypes.TEXTURES
 
-    override val iconName = "assets/images/assettype_texture.png"
+    override val iconName = "internal/images/assettype_texture.png"
+
+    override val supportedFormats get() = Kore.graphics.supportedImageFormats.toList()
 
     override val assetNames get() = Game.textures.names
 
@@ -238,6 +249,22 @@ class TextureAssetType : AssetType<TextureAssetType>, Disposable {
                 }
             }
         }
+    }
+
+    override fun load(file: FileHandle) {
+        val metaFileHandle = file.sibling("${file.nameWithoutExtension}.meta")
+
+        var filter = Texture.Filter.NEAREST
+
+        val name = if (metaFileHandle.exists) {
+            val metaFile = TextureMetaFile()
+            metaFile.read(metaFileHandle)
+            filter = metaFile.filter
+            metaFile.name
+        } else
+            file.fullPath
+
+        Game.textures.add(file, name, filter)
     }
 
     override fun dispose() {

@@ -1,6 +1,5 @@
 package engine.graphics.ui.widgets
 
-import com.cozmicgames.utils.Color
 import com.cozmicgames.utils.maths.Rectangle
 import engine.graphics.TextureRegion
 import engine.graphics.font.GlyphLayout

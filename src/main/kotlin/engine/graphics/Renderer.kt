@@ -5,7 +5,6 @@ import com.cozmicgames.graphics
 import com.cozmicgames.graphics.IndexDataType
 import com.cozmicgames.graphics.Primitive
 import com.cozmicgames.graphics.gpu.*
-import com.cozmicgames.log
 import com.cozmicgames.utils.Color
 import com.cozmicgames.utils.Disposable
 import com.cozmicgames.utils.collections.DynamicStack
@@ -232,10 +231,7 @@ class Renderer(graphics: Graphics2D) : Disposable {
         val material = batch.material
 
         if (material != null) {
-            shader = Game.shaders[material.shader] ?: run {
-                Kore.log.error(this::class, "Couldn't find shader, using default shader: ${material.shader}")
-                DefaultShader
-            }
+            shader = Game.shaders[material.shader] ?: DefaultShader
             texture = Game.textures[material.colorTexturePath].texture
             shader.setMaterial(material)
             context.draw(batch.context)

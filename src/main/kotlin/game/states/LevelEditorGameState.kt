@@ -20,7 +20,7 @@ import engine.scene.components.TransformComponent
 import engine.scene.processors.DrawableRenderProcessor
 import engine.scene.processors.ParticleRenderProcessor
 import engine.scene.processors.SpriteRenderProcessor
-import engine.utils.FreeCameraControllerComponent
+import game.components.FreeCameraControllerComponent
 import game.GameControls
 import game.components.CameraComponent
 import game.components.GridComponent
@@ -39,7 +39,7 @@ class LevelEditorGameState : GameState {
     }
 
     private val scene = Scene()
-    private val LevelEditor = LevelEditor(scene)
+    private val levelEditor = LevelEditor(scene)
     private val tileTypeEditor = TileTypeEditor()
     private val renderGraph = RenderGraph(SimplePresentFunction(LEVEL_EDITOR_PASS_NAME, 0))
     private var isMenuOpen = false
@@ -75,14 +75,14 @@ class LevelEditorGameState : GameState {
                 if (isMenuOpen || isTileTypeEditorOpen)
                     Game.gui.isInteractionEnabled = false
 
-                val returnState = LevelEditor.onFrame(delta)
+                val returnState = levelEditor.onFrame(delta)
 
                 if (isMenuOpen || isTileTypeEditorOpen)
                     Game.gui.isInteractionEnabled = true
 
 
                 if (returnState !is LevelEditor.ReturnState.None)
-                    LevelEditor.removeCameraControls()
+                    levelEditor.removeCameraControls()
 
                 if (returnState is LevelEditor.ReturnState.Menu) {
                     isMenuOpen = true
@@ -183,7 +183,7 @@ class LevelEditorGameState : GameState {
                     if (isTileTypeEditorOpen)
                         TILETYPE_EDITOR_PASS_NAME
                     else {
-                        LevelEditor.addCameraControls()
+                        levelEditor.addCameraControls()
                         LEVEL_EDITOR_PASS_NAME
                     }
                 )

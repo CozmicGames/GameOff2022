@@ -1,7 +1,6 @@
 package game.level
 
 import com.cozmicgames.*
-import com.cozmicgames.utils.Disposable
 import com.cozmicgames.utils.maths.Vector2
 import engine.Game
 import engine.graphics.ui.widgets.*
@@ -13,7 +12,7 @@ import game.extensions.plusButton
 class TileTypeEditor {
     companion object {
         private val EMPTY_MATERIAL = Material().also {
-            it.colorTexturePath = "assets/images/empty_tiletype.png"
+            it.colorTexturePath = "internal/images/empty_tiletype.png"
         }
     }
 

@@ -1,13 +1,11 @@
 package engine.graphics
 
 import com.cozmicgames.Kore
-import com.cozmicgames.audio
 import com.cozmicgames.files.FileHandle
 import com.cozmicgames.graphics
 import com.cozmicgames.graphics.Font
 import com.cozmicgames.log
 import com.cozmicgames.utils.Disposable
-import engine.graphics.shaders.Shader
 import kotlin.reflect.KProperty
 
 class FontManager : Disposable {

@@ -1,7 +1,6 @@
 package engine.graphics.ui.layout
 
 import com.cozmicgames.utils.Disposable
-import engine.Game
 import engine.graphics.ui.GUI
 import engine.graphics.ui.GUISkin
 

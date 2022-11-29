@@ -1,10 +1,8 @@
 package engine.utils
 
 import com.cozmicgames.utils.Properties
-import com.cozmicgames.utils.maths.Matrix2x2
 import com.cozmicgames.utils.maths.Matrix3x2
 import com.cozmicgames.utils.maths.Vector2
-import com.cozmicgames.utils.maths.length
 import kotlin.math.cos
 import kotlin.math.sin
 

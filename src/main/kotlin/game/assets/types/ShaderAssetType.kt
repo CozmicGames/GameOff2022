@@ -2,6 +2,7 @@ package game.assets.types
 
 import com.cozmicgames.*
 import com.cozmicgames.files.FileHandle
+import com.cozmicgames.files.nameWithoutExtension
 import engine.Game
 import engine.graphics.ui.DragDropData
 import engine.graphics.ui.GUI
@@ -9,13 +10,14 @@ import engine.graphics.ui.GUIElement
 import engine.graphics.ui.widgets.image
 import engine.graphics.ui.widgets.label
 import game.assets.AssetType
+import game.assets.MetaFile
 import game.extensions.importButton
 import game.level.editorStyle
 
 class ShaderAssetType : AssetType<ShaderAssetType> {
     inner class ShaderImportPopup : SimpleImportPopup(this, "Import shader") {
-        override fun onImport(file: FileHandle) {
-            Game.shaders.add(file)
+        override fun onImport(file: FileHandle, name: String) {
+            Game.shaders.add(file, name)
         }
     }
 
@@ -23,14 +25,16 @@ class ShaderAssetType : AssetType<ShaderAssetType> {
 
     override val name = AssetTypes.SHADERS
 
-    override val iconName = "assets/images/assettype_shader.png"
+    override val iconName = "internal/images/assettype_shader.png"
+
+    override val supportedFormats = listOf("shader")
 
     override val assetNames get() = Game.shaders.names
 
     private val importPopup = ShaderImportPopup()
 
     override fun preview(gui: GUI, size: Float, name: String) {
-        gui.image(Game.textures["assets/images/assettype_shader.png"], size)
+        gui.image(Game.textures["internal/images/assettype_shader.png"], size)
     }
 
     override fun createDragDropData(name: String) = { DragDropData(ShaderAsset(name)) { label(name) } }
@@ -44,5 +48,18 @@ class ShaderAssetType : AssetType<ShaderAssetType> {
                 }
             }
         }
+    }
+
+    override fun load(file: FileHandle) {
+        val metaFileHandle = file.sibling("${file.nameWithoutExtension}.meta")
+
+        val name = if (metaFileHandle.exists) {
+            val metaFile = MetaFile()
+            metaFile.read(metaFileHandle)
+            metaFile.name
+        } else
+            file.fullPath
+
+        Game.shaders.add(file, name)
     }
 }

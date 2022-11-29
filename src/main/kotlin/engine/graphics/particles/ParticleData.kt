@@ -1,7 +1,6 @@
 package engine.graphics.particles
 
 import com.cozmicgames.utils.extensions.swap
-import java.util.Properties
 import kotlin.reflect.KClass
 
 class ParticleData(val maxParticles: Int) {

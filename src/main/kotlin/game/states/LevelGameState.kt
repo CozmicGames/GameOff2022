@@ -22,7 +22,7 @@ import engine.scene.components.findGameObjectByName
 import engine.scene.processors.DrawableRenderProcessor
 import engine.scene.processors.ParticleRenderProcessor
 import engine.scene.processors.SpriteRenderProcessor
-import engine.utils.FreeCameraControllerComponent
+import game.components.FreeCameraControllerComponent
 import game.GameControls
 import game.components.CameraComponent
 import game.components.GridComponent

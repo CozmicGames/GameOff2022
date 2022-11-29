@@ -1,7 +1,6 @@
 package engine.scene
 
 import com.cozmicgames.Kore
-import com.cozmicgames.files
 import com.cozmicgames.files.FileHandle
 import com.cozmicgames.files.readToString
 import com.cozmicgames.files.writeString

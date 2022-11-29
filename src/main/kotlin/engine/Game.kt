@@ -18,7 +18,6 @@ import engine.graphics.ui.widgets.separator
 import engine.input.ControlManager
 import engine.materials.MaterialManager
 import engine.physics.Physics
-import engine.scene.SceneManager
 import engine.utils.Rumble
 import game.assets.AssetManager
 import game.level.TileSetManager

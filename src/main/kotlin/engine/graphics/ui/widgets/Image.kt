@@ -15,7 +15,7 @@ import engine.graphics.ui.drawRect
  * @param height The height of the image. Defaults to the same value as [width].
  * @param color The color to tint the image with. Defaults to [Color.WHITE].
  * @param borderThickness The thickness of the border. Defaults to 4.0f.
- * @param borderInside Whether the border should be inside or outside of the specified [width] and [height].
+ * @param borderInside Whether the border should be inside or outside the specified [width] and [height].
  */
 fun GUI.image(texture: TextureRegion, width: Float = skin.elementSize, height: Float = width, color: Color = Color.WHITE, borderThickness: Float = skin.strokeThickness, borderInside: Boolean = true): GUIElement {
     val (x, y) = getLastElement()

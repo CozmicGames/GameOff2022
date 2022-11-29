@@ -6,7 +6,6 @@ import com.cozmicgames.utils.collections.Pool
 import com.cozmicgames.utils.maths.OrthographicCamera
 import engine.Game
 import engine.graphics.shaders.DefaultShader
-import engine.materials.Material
 
 class RenderManager : Disposable {
     private class RenderList(val layer: Int) : Iterable<Renderable> {

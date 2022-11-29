@@ -59,14 +59,9 @@ class TextureManager : Disposable {
     operator fun get(fileHandle: FileHandle) = get(fileHandle.fullPath)
 
     operator fun get(name: String): TextureRegion {
-        val returnMissing = {
-            Kore.log.error(this::class, "Couldn't find texture '$name', using missing texture instead.")
-            Game.graphics2d.missingTexture.asRegion()
-        }
-
-        val key = keys[name] ?: return returnMissing()
-        val texture = textures[key] ?: return returnMissing()
-        return texture[name] ?: returnMissing()
+        val key = keys[name] ?: return Game.graphics2d.missingTexture.asRegion()
+        val texture = textures[key] ?: return Game.graphics2d.missingTexture.asRegion()
+        return texture[name] ?: Game.graphics2d.missingTexture.asRegion()
     }
 
     fun getOrAdd(fileHandle: FileHandle, name: String = fileHandle.fullPath, filter: Texture.Filter = Texture.Filter.NEAREST): TextureRegion {

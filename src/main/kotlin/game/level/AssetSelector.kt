@@ -1,7 +1,6 @@
 package game.level
 
 import com.cozmicgames.*
-import com.cozmicgames.utils.Disposable
 import com.cozmicgames.utils.maths.Vector2
 import engine.Game
 import engine.graphics.ui.*
@@ -11,6 +10,8 @@ import game.assets.findAssetType
 import game.extensions.multilineListWithSameElementWidths
 
 class AssetSelector {
+    var showInternalAssetElements = false
+
     private var currentAssetType: String? = null
     private val assetPanelScroll = Vector2()
     private val filterTextData = TextData {
@@ -39,7 +40,7 @@ class AssetSelector {
 
             val filterText = {
                 gui.sameLine {
-                    gui.image(Game.textures["assets/images/search.png"], borderThickness = 0.0f)
+                    gui.image(Game.textures["internal/images/search.png"], borderThickness = 0.0f)
                     gui.textField(filterTextData, gui.skin.elementSize * 6.0f)
                 }
             }
@@ -60,10 +61,13 @@ class AssetSelector {
 
                 if (assetType != null) {
                     val elements = assetType.assetNames.filter {
-                        if (filterTextData.text.isNotBlank())
-                            filterTextData.text in it
-                        else
-                            true
+                        if (showInternalAssetElements || !it.startsWith("internal")) {
+                            if (filterTextData.text.isNotBlank())
+                                filterTextData.text in it
+                            else
+                                true
+                        } else
+                            false
                     }.mapTo(arrayListOf()) {
                         {
                             gui.draggable(assetType.createDragDropData(it)) {

@@ -1,7 +1,5 @@
 package engine.graphics.ui
 
-import com.cozmicgames.Kore
-import com.cozmicgames.graphics
 import engine.graphics.ui.widgets.label
 
 open class DragDropData<T : Any>(val payload: T, val onDrawPayload: GUI.() -> Unit) {

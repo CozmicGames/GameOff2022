@@ -8,7 +8,7 @@ fun main() {
     val configuration = Configuration()
 
     if (!configuration.readFromFile(CONFIG_FILE))
-        configuration.icons = arrayOf("icons/icon.png")
+        configuration.icons = arrayOf("internal/icons/icon.png")
 
     configuration.title = "GameOff 2022"
 

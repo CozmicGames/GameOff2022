@@ -1,12 +1,6 @@
 package engine.graphics.ui
 
-import com.cozmicgames.graphics.gpu.ScissorRect
-import com.cozmicgames.utils.maths.Rectangle
-import com.cozmicgames.utils.maths.intersectRectRect
 import engine.graphics.Renderer
-import java.awt.datatransfer.FlavorListener
-import kotlin.math.max
-import kotlin.math.min
 
 class GUILayer {
     private val visibility = GUIVisibility()

@@ -1,6 +1,5 @@
 package game.assets.types
 
-import com.cozmicgames.utils.extensions.nameWithExtension
 import engine.Game
 import engine.graphics.font.HAlign
 import engine.graphics.ui.GUI

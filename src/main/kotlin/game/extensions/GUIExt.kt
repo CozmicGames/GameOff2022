@@ -7,8 +7,6 @@ import engine.graphics.shaders.DefaultShader
 import engine.graphics.ui.*
 import engine.graphics.ui.widgets.imageButton
 import engine.materials.Material
-import game.level.LevelEditor
-import game.level.editorStyle
 import java.lang.Float.min
 import kotlin.math.sqrt
 
@@ -105,7 +103,7 @@ fun GUI.editable(element: () -> GUIElement, size: Float, action: () -> Unit): GU
     transient {
         layerUp {
             offset(elementWidth - size * 1.25f, size * 0.25f) {
-                imageButton(Game.textures["assets/images/edit_tiletype.png"], size, action = action)
+                imageButton(Game.textures["internal/images/edit_tiletype.png"], size, action = action)
             }
         }
     }
@@ -187,8 +185,8 @@ fun GUI.multilineListWithSameElementWidths(maxWidth: Float, elementWidth: Float,
     }
 }
 
-fun GUI.importButton(width: Float, height: Float = width, action: () -> Unit) = imageButton(Game.textures["assets/images/import_button.png"], width, height, action)
+fun GUI.importButton(width: Float, height: Float = width, action: () -> Unit) = imageButton(Game.textures["internal/images/import_button.png"], width, height, action)
 
-fun GUI.plusButton(width: Float, height: Float = width, action: () -> Unit) = imageButton(Game.textures["assets/images/plus_button.png"], width, height, action)
+fun GUI.plusButton(width: Float, height: Float = width, action: () -> Unit) = imageButton(Game.textures["internal/images/plus_button.png"], width, height, action)
 
-fun GUI.minusButton(width: Float, height: Float = width, action: () -> Unit) = imageButton(Game.textures["assets/images/minus_button.png"], width, height, action)
+fun GUI.minusButton(width: Float, height: Float = width, action: () -> Unit) = imageButton(Game.textures["internal/images/minus_button.png"], width, height, action)
