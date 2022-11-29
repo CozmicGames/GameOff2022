@@ -1,0 +1,10 @@
+{
+    "name": {
+        "type": "STRING",
+        "value": "internal/images/plus_button.png"
+    },
+    "filterName": {
+        "type": "STRING",
+        "value": "LINEAR"
+    }
+}

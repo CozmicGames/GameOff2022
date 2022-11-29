@@ -204,7 +204,8 @@ class TextureAssetType : AssetType<TextureAssetType>, Disposable {
                     }
                 }
             } else {
-                val assetFile = Game.assets.getAssetFileHandle(nameTextData.text)
+                val imageFileName = "${nameTextData.text}.${file.extension}"
+                val assetFile = Game.assets.getAssetFileHandle(imageFileName)
 
                 if (file != nameTextData.text) {
                     if (assetFile.exists)
@@ -212,6 +213,11 @@ class TextureAssetType : AssetType<TextureAssetType>, Disposable {
 
                     Game.assets.importFile(Kore.files.absolute(file), assetFile)
                 }
+
+                val metaFile = TextureMetaFile()
+                metaFile.name = imageFileName
+                metaFile.filter = selectedFilter
+                metaFile.write(assetFile.sibling("${assetFile.nameWithoutExtension}.meta"))
 
                 Game.textures.add(assetFile, filter = selectedFilter)
             }
