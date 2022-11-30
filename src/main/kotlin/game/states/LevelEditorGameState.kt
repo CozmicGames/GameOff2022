@@ -14,7 +14,6 @@ import engine.graphics.rendergraph.functions.BlurVerticalRenderFunction
 import engine.graphics.rendergraph.onRender
 import engine.graphics.rendergraph.passes.ColorRenderPass
 import engine.graphics.rendergraph.present.SimplePresentFunction
-import engine.graphics.ui.widgets.*
 import engine.scene.Scene
 import engine.scene.components.TransformComponent
 import engine.scene.processors.DrawableRenderProcessor
@@ -23,30 +22,30 @@ import engine.scene.processors.SpriteRenderProcessor
 import game.components.FreeCameraControllerComponent
 import game.GameControls
 import game.components.CameraComponent
-import game.components.GridComponent
-import game.level.*
+import game.level.ui.LevelEditor
+import game.menu.LevelEditorMenu
 
 class LevelEditorGameState : GameState {
     private companion object {
         const val LEVEL_EDITOR_PASS_NAME = "levelEditor"
         const val LEVEL_EDITOR_BLUR_PREPASS_NAME = "levelEditorBlurPre"
         const val LEVEL_EDITOR_BLUR_PASS_NAME = "levelEditorBlur"
-        const val TILETYPE_EDITOR_PASS_NAME = "tileTypeEditor"
-        const val TILETYPE_EDITOR_BLUR_PREPASS_NAME = "tileTypeEditorBlurPre"
-        const val TILETYPE_EDITOR_BLUR_PASS_NAME = "tileTypeEditorBlur"
-        const val MENU_FROM_LEVEL_EDITOR_PASS_NAME = "menuFromLevelEditor"
-        const val MENU_FROM_TILETYPE_EDITOR_PASS_NAME = "menuFromTileTypeEditor"
+        const val MENU_PASS_NAME = "menuFromLevelEditor"
+    }
+
+    private enum class PresentSource(val passName: String) {
+        LEVEL_EDITOR(LEVEL_EDITOR_PASS_NAME),
+        MENU(MENU_PASS_NAME),
+        MAIN_MENU(MENU_PASS_NAME)
     }
 
     private val scene = Scene()
     private val levelEditor = LevelEditor(scene)
-    private val tileTypeEditor = TileTypeEditor()
-    private val renderGraph = RenderGraph(SimplePresentFunction(LEVEL_EDITOR_PASS_NAME, 0))
+    private val levelEditorMenu = LevelEditorMenu()
     private var isMenuOpen = false
-    private var isTileTypeEditorOpen = false
-    private var newPresentSource: String? = null
+    private val renderGraph = RenderGraph(SimplePresentFunction(LEVEL_EDITOR_PASS_NAME, 0))
+    private var newPresentSource: PresentSource? = null
     private val resizeListener = renderGraph::resize
-    private lateinit var editTileTypeState: LevelEditor.ReturnState.EditTileType
 
     override fun onCreate() {
         scene.addGameObject {
@@ -57,13 +56,6 @@ class LevelEditorGameState : GameState {
             addComponent<FreeCameraControllerComponent> { }
         }
 
-        scene.addGameObject {
-            addComponent<TransformComponent> { }
-            addComponent<GridComponent> {
-                tileSet = "assets/tilesets/test.tileset"
-            }
-        }
-
         scene.addSceneProcessor(SpriteRenderProcessor())
         scene.addSceneProcessor(DrawableRenderProcessor())
         scene.addSceneProcessor(ParticleRenderProcessor())
@@ -72,27 +64,13 @@ class LevelEditorGameState : GameState {
             override fun render(delta: Float) {
                 Kore.graphics.clear(Color(0x726D8AFF))
 
-                if (isMenuOpen || isTileTypeEditorOpen)
-                    Game.gui.isInteractionEnabled = false
-
                 val returnState = levelEditor.onFrame(delta)
 
-                if (isMenuOpen || isTileTypeEditorOpen)
-                    Game.gui.isInteractionEnabled = true
+                if (returnState is LevelEditor.ReturnState.Menu)
+                    setPresentSource(PresentSource.MENU)
 
-
-                if (returnState !is LevelEditor.ReturnState.None)
-                    levelEditor.removeCameraControls()
-
-                if (returnState is LevelEditor.ReturnState.Menu) {
-                    isMenuOpen = true
-                    setPresentSource(MENU_FROM_LEVEL_EDITOR_PASS_NAME)
-                }
-
-                if (returnState is LevelEditor.ReturnState.EditTileType) {
-                    isTileTypeEditorOpen = true
-                    editTileTypeState = returnState
-                    setPresentSource(TILETYPE_EDITOR_PASS_NAME)
+                if (returnState is LevelEditor.ReturnState.MainMenu) {
+                    setPresentSource(PresentSource.MAIN_MENU)
                 }
             }
         })
@@ -100,123 +78,53 @@ class LevelEditorGameState : GameState {
         renderGraph.onRender(LEVEL_EDITOR_BLUR_PREPASS_NAME, ColorRenderPass(), BlurHorizontalRenderFunction(LEVEL_EDITOR_PASS_NAME, 0))
         renderGraph.onRender(LEVEL_EDITOR_BLUR_PASS_NAME, ColorRenderPass(), BlurVerticalRenderFunction(LEVEL_EDITOR_BLUR_PREPASS_NAME, 0))
 
-        renderGraph.onRender(TILETYPE_EDITOR_PASS_NAME, ColorRenderPass(), object : RenderFunction() {
+        renderGraph.onRender(MENU_PASS_NAME, ColorRenderPass(), object : RenderFunction() {
             private val colorInput = colorRenderTargetDependency(LEVEL_EDITOR_BLUR_PASS_NAME, 0)
 
             override fun render(delta: Float) {
                 Kore.graphics.clear(Color.CLEAR)
 
-                Game.gui.begin()
-                Game.gui.transient {
-                    Game.gui.image(colorInput.texture.asRegion(), pass.width.toFloat(), pass.height.toFloat())
+                Game.graphics2d.render {
+                    it.draw(colorInput.texture.asRegion(), 0.0f, 0.0f, pass.width.toFloat(), pass.height.toFloat())
                 }
 
-                if (isMenuOpen)
-                    Game.gui.isInteractionEnabled = false
+                val returnState = levelEditorMenu.onFrame()
 
-                val returnState = tileTypeEditor.onFrame(editTileTypeState.tileType, editTileTypeState.tileSet)
+                if (returnState is LevelEditorMenu.ReturnState.LevelEditor)
+                    setPresentSource(PresentSource.MENU)
 
-                if (returnState is TileTypeEditor.ReturnState.Menu) {
-                    isMenuOpen = true
-                    setPresentSource(MENU_FROM_TILETYPE_EDITOR_PASS_NAME)
-                }
-
-                if (returnState is TileTypeEditor.ReturnState.LevelEditor) {
-                    isTileTypeEditorOpen = false
-                    setPresentSource(LEVEL_EDITOR_PASS_NAME)
-                }
-
-                if (isMenuOpen)
-                    Game.gui.isInteractionEnabled = true
-            }
-        })
-
-        renderGraph.onRender(TILETYPE_EDITOR_BLUR_PREPASS_NAME, ColorRenderPass(), BlurHorizontalRenderFunction(TILETYPE_EDITOR_PASS_NAME, 0))
-        renderGraph.onRender(TILETYPE_EDITOR_BLUR_PASS_NAME, ColorRenderPass(), BlurVerticalRenderFunction(TILETYPE_EDITOR_BLUR_PREPASS_NAME, 0))
-
-        renderGraph.onRender(MENU_FROM_LEVEL_EDITOR_PASS_NAME, ColorRenderPass(), object : RenderFunction() {
-            private val colorInput = colorRenderTargetDependency(LEVEL_EDITOR_BLUR_PASS_NAME, 0)
-
-            override fun render(delta: Float) {
-                Kore.graphics.clear(Color.CLEAR)
-
-                Game.gui.begin()
-                Game.gui.transient {
-                    Game.gui.image(colorInput.texture.asRegion(), pass.width.toFloat(), pass.height.toFloat())
-                }
-                Game.gui.end()
-
-                drawMenu()
-            }
-        })
-
-        renderGraph.onRender(MENU_FROM_TILETYPE_EDITOR_PASS_NAME, ColorRenderPass(), object : RenderFunction() {
-            private val colorInput = colorRenderTargetDependency(TILETYPE_EDITOR_BLUR_PASS_NAME, 0)
-
-            override fun render(delta: Float) {
-                Kore.graphics.clear(Color.CLEAR)
-
-                Game.gui.begin()
-                Game.gui.transient {
-                    Game.gui.image(colorInput.texture.asRegion(), pass.width.toFloat(), pass.height.toFloat())
-                }
-                Game.gui.end()
-
-                drawMenu()
+                if (returnState is LevelEditorMenu.ReturnState.MainMenu)
+                    setPresentSource(PresentSource.MAIN_MENU)
             }
         })
 
         Kore.addResizeListener(resizeListener)
     }
 
-    private fun setPresentSource(name: String) {
-        newPresentSource = name
-    }
-
-    private fun drawMenu() {
-        Game.gui.begin()
-
-        Game.gui.group(Color(0xFFF5CCFF.toInt())) {
-            Game.gui.textButton("Resume") {
-                isMenuOpen = false
-                setPresentSource(
-                    if (isTileTypeEditorOpen)
-                        TILETYPE_EDITOR_PASS_NAME
-                    else {
-                        levelEditor.addCameraControls()
-                        LEVEL_EDITOR_PASS_NAME
-                    }
-                )
-            }
-            Game.gui.textButton("To Menu") {
-                println("To menu") //TODO
-            }
-            Game.gui.textButton("Settings") {
-                println("Settings") //TODO
-            }
-            Game.gui.textButton("Close Game") {
-                Kore.stop()
-            }
-        }
-        Game.gui.end()
+    private fun setPresentSource(presentSource: PresentSource) {
+        newPresentSource = presentSource
     }
 
     override fun onFrame(delta: Float): GameState {
         newPresentSource?.let {
-            renderGraph.presentRenderFunction = SimplePresentFunction(it, 0)
+            if (it == PresentSource.LEVEL_EDITOR)
+                levelEditor.enableInteraction()
+            else
+                levelEditor.disableInteraction()
+
+            if (it == PresentSource.MAIN_MENU)
+                return MainMenuState()
+
+            isMenuOpen = it == PresentSource.MENU
+
+            renderGraph.presentRenderFunction = SimplePresentFunction(it.passName, 0)
             newPresentSource = null
         }
 
         renderGraph.render(delta)
 
-        if (GameControls.openMenuFromLevel.isTriggered) {
-            isMenuOpen = !isMenuOpen
-
-            if (isMenuOpen)
-                setPresentSource(if (isTileTypeEditorOpen) MENU_FROM_TILETYPE_EDITOR_PASS_NAME else MENU_FROM_LEVEL_EDITOR_PASS_NAME)
-            else
-                setPresentSource(if (isTileTypeEditorOpen) TILETYPE_EDITOR_PASS_NAME else LEVEL_EDITOR_PASS_NAME)
-        }
+        if (GameControls.openMenuFromLevel.isTriggered)
+            setPresentSource(if (isMenuOpen) PresentSource.LEVEL_EDITOR else PresentSource.MENU)
 
         return this
     }
@@ -224,6 +132,8 @@ class LevelEditorGameState : GameState {
     override fun onDestroy() {
         scene.dispose()
         renderGraph.dispose()
+        levelEditor.dispose()
+        levelEditorMenu.dispose()
         Kore.removeResizeListener(resizeListener)
     }
 }

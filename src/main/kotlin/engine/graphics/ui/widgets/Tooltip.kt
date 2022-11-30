@@ -5,10 +5,7 @@ import com.cozmicgames.graphics
 import com.cozmicgames.utils.Color
 import com.cozmicgames.utils.maths.Rectangle
 import engine.graphics.font.GlyphLayout
-import engine.graphics.ui.GUI
-import engine.graphics.ui.GUIElement
-import engine.graphics.ui.drawRectFilled
-import engine.graphics.ui.drawText
+import engine.graphics.ui.*
 
 fun GUI.tooltip(element: GUIElement, text: String, backgroundColor: Color? = skin.backgroundColor): GUIElement {
     if (!shouldShowTooltip)
@@ -37,7 +34,7 @@ fun GUI.tooltip(element: GUIElement, text: String, backgroundColor: Color? = ski
     rectangle.height = element.height
 
     if (GUI.State.HOVERED in getState(rectangle)) {
-        layerUp {
+        topLayer {
             if (backgroundColor != null)
                 currentCommandList.drawRectFilled(x, y, width, height, skin.roundedCorners, skin.cornerRounding, backgroundColor)
 

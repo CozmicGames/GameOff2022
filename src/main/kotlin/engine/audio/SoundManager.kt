@@ -4,6 +4,7 @@ import com.cozmicgames.Kore
 import com.cozmicgames.audio
 import com.cozmicgames.audio.Sound
 import com.cozmicgames.files.FileHandle
+import com.cozmicgames.graphics.Font
 import com.cozmicgames.log
 import com.cozmicgames.utils.Disposable
 import kotlin.reflect.KProperty
@@ -13,7 +14,9 @@ class SoundManager : Disposable {
         operator fun getValue(thisRef: Any, property: KProperty<*>) = getOrAdd(file, name)
     }
 
-    private val sounds = hashMapOf<String, Sound>()
+    private class Entry(val value: Sound, val file: FileHandle?)
+
+    private val sounds = hashMapOf<String, Entry>()
 
     val names get() = sounds.keys.toList()
 
@@ -30,11 +33,11 @@ class SoundManager : Disposable {
             return
         }
 
-        add(name, sound)
+        add(name, sound, file)
     }
 
-    fun add(name: String, sound: Sound) {
-        sounds[name] = sound
+    fun add(name: String, sound: Sound, file: FileHandle? = null) {
+        sounds[name] = Entry(sound, file)
     }
 
     operator fun contains(file: FileHandle) = contains(file.fullPath)
@@ -50,8 +53,10 @@ class SoundManager : Disposable {
     operator fun get(file: FileHandle) = get(file.fullPath)
 
     operator fun get(name: String): Sound? {
-        return sounds[name]
+        return sounds[name]?.value
     }
+
+    fun getFileHandle(name: String) = sounds[name]?.file
 
     fun getOrAdd(file: FileHandle, name: String = file.fullPath): Sound {
         if (name !in this)
@@ -61,8 +66,8 @@ class SoundManager : Disposable {
     }
 
     override fun dispose() {
-        sounds.forEach { (_, sound) ->
-            sound.dispose()
+        sounds.forEach { (_, entry) ->
+            entry.value.dispose()
         }
     }
 

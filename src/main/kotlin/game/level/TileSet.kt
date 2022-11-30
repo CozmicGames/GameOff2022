@@ -1,17 +1,27 @@
 package game.level
 
+import com.cozmicgames.utils.Disposable
 import com.cozmicgames.utils.Properties
 import com.cozmicgames.utils.UUID
 import com.cozmicgames.utils.extensions.enumValueOfOrNull
+import com.cozmicgames.utils.extensions.pathWithoutExtension
+import engine.Game
+import engine.materials.Material
 import game.components.GridComponent
 import game.components.getCellType
 
-class TileSet {
+class TileSet(val name: String) : Disposable {
     companion object {
-        private val MISSING_TILETYPE = TileType()
+        private fun createMaterial(tileSetName: String): String {
+            val name = "${tileSetName.pathWithoutExtension}/${UUID.randomUUID()}.material"
+            val material = Material()
+            material.colorTexturePath = "internal/images/empty_tiletype.png"
+            Game.materials.add(name, material)
+            return name
+        }
     }
 
-    class TileType {
+    class TileType(val tileSet: TileSet) : Disposable {
         sealed class Dependency(val type: Type) {
             enum class Type {
                 SOLID,
@@ -28,8 +38,8 @@ class TileSet {
             var tileTypes = arrayListOf<String>()
         }
 
-        class Rule {
-            var material = "assets/materials/empty_tiletype.material"
+        inner class Rule : Disposable {
+            val material = createMaterial(tileSet.name)
 
             var dependencyTopLeft: Dependency? = null
             var dependencyTopCenter: Dependency? = null
@@ -50,7 +60,11 @@ class TileSet {
                 dependencyBottomCenter = null
                 dependencyBottomRight = null
 
-                properties.getString("material")?.let { material = it }
+                properties.getProperties("material")?.let {
+                    val material = Game.materials[this.material]
+                    material?.clear()
+                    material?.set(it)
+                }
 
                 fun readDependencyProperties(properties: Properties): Dependency? {
                     val typeName = properties.getString("type") ?: return null
@@ -78,7 +92,9 @@ class TileSet {
             }
 
             fun write(properties: Properties) {
-                properties.setString("material", material)
+                properties.setProperties("material", Game.materials[material] ?: Material().also {
+                    it.colorTexturePath = "assets/internal/images/empty_tiletype.png"
+                })
 
                 fun writeDependencyProperties(dependency: Dependency?): Properties {
                     val dependencyProperties = Properties()
@@ -99,13 +115,17 @@ class TileSet {
                 properties.setProperties("bottomCenter", writeDependencyProperties(dependencyBottomCenter))
                 properties.setProperties("bottomRight", writeDependencyProperties(dependencyBottomRight))
             }
+
+            override fun dispose() {
+                Game.materials.remove(material)
+            }
         }
 
         private val rulesInternal = arrayListOf<Rule>()
 
         val rules get() = ArrayList(rulesInternal).toList()
 
-        var defaultMaterial = "assets/materials/empty_tiletype.material"
+        var defaultMaterial = createMaterial(tileSet.name)
         var width = 1.0f
         var height = 1.0f
 
@@ -173,14 +193,19 @@ class TileSet {
             return rule
         }
 
-        fun remove(rule: Rule) {
-            rulesInternal -= rule
+        fun removeRule(rule: Rule) {
+            if (rulesInternal.remove(rule))
+                rule.dispose()
         }
 
         fun read(properties: Properties) {
             rulesInternal.clear()
 
-            properties.getString("defaultMaterial")?.let { defaultMaterial = it }
+            properties.getProperties("defaultMaterial")?.let {
+                val material = Game.materials[defaultMaterial]
+                material?.clear()
+                material?.set(it)
+            }
 
             properties.getPropertiesArray("rules")?.let {
                 it.forEach {
@@ -199,27 +224,87 @@ class TileSet {
                 rulesProperties += ruleProperties
             }
 
-            properties.setString("defaultMaterial", defaultMaterial)
+            properties.setProperties("defaultMaterial", Game.materials[defaultMaterial] ?: (Material().also {
+                it.colorTexturePath = "internal/images/empty_tiletype.png"
+            }))
+
             properties.setPropertiesArray("rules", rulesProperties.toTypedArray())
+        }
+
+        override fun dispose() {
+            Game.materials.remove(defaultMaterial)
+
+            rulesInternal.forEach {
+                it.dispose()
+            }
         }
     }
 
     private val types = hashMapOf<String, TileType>()
 
-    val ids get() = types.keys.asIterable()
+    val tileTypeNames get() = types.keys.toList()
 
-    operator fun get(id: String) = types[id] ?: MISSING_TILETYPE
+    operator fun get(id: String) = types[id]
 
     operator fun contains(id: String) = id in types
 
     fun addType(): String {
         val id = UUID.randomUUID().toString()
-        this[id] = TileType()
+        this[id] = TileType(this)
         return id
     }
 
     operator fun set(name: String, type: TileType) {
         types[name] = type
+    }
+
+    fun remove(name: String): Boolean {
+        val type = types.remove(name)
+        return if (type != null) {
+            type.dispose()
+            true
+        } else
+            false
+    }
+
+    fun clear() {
+        types.clear()
+    }
+
+    fun set(tileSet: TileSet) {
+        tileSet.types.forEach { name, type ->
+            this[name] = TileType(this).also { dest ->
+                dest.defaultMaterial = type.defaultMaterial
+                dest.width = type.width
+                dest.height = type.height
+
+                type.rules.forEach {
+                    val rule = dest.addRule()
+
+                    Game.materials[it.material]?.let {
+                        Game.materials[rule.material]?.set(it)
+                    }
+
+                    fun copyDependency(src: TileType.Dependency?) = when (src?.type) {
+                        TileType.Dependency.Type.EMPTY -> TileType.EmptyDependency
+                        TileType.Dependency.Type.SOLID -> TileType.EmptyDependency
+                        TileType.Dependency.Type.TILE -> TileType.TileTypeDependency().also {
+                            it.tileTypes.addAll((src as TileType.TileTypeDependency).tileTypes)
+                        }
+                        else -> null
+                    }
+
+                    rule.dependencyTopLeft = copyDependency(it.dependencyTopLeft)
+                    rule.dependencyTopCenter = copyDependency(it.dependencyTopCenter)
+                    rule.dependencyTopRight = copyDependency(it.dependencyTopRight)
+                    rule.dependencyCenterLeft = copyDependency(it.dependencyCenterLeft)
+                    rule.dependencyCenterRight = copyDependency(it.dependencyCenterRight)
+                    rule.dependencyBottomLeft = copyDependency(it.dependencyBottomLeft)
+                    rule.dependencyBottomCenter = copyDependency(it.dependencyBottomCenter)
+                    rule.dependencyBottomRight = copyDependency(it.dependencyBottomRight)
+                }
+            }
+        }
     }
 
     fun read(properties: Properties) {
@@ -228,7 +313,7 @@ class TileSet {
         properties.getPropertiesArray("types")?.let {
             for (typeProperties in it) {
                 val name = typeProperties.getString("name") ?: continue
-                val tileType = TileType()
+                val tileType = TileType(this)
                 tileType.width = typeProperties.getFloat("width") ?: 1.0f
                 tileType.height = typeProperties.getFloat("height") ?: 1.0f
                 tileType.read(typeProperties)
@@ -252,5 +337,11 @@ class TileSet {
         }
 
         properties.setPropertiesArray("types", typesProperties.toTypedArray())
+    }
+
+    override fun dispose() {
+        types.forEach { (_, type) ->
+            type.dispose()
+        }
     }
 }

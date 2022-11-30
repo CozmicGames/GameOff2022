@@ -8,15 +8,13 @@ import com.cozmicgames.utils.Properties
 import kotlin.reflect.KProperty
 
 class TileSetManager {
-    companion object {
-        private val EMPTY = TileSet()
-    }
-
     inner class Getter(val file: FileHandle, val name: String) {
         operator fun getValue(thisRef: Any, property: KProperty<*>) = getOrAdd(file, name)
     }
 
-    private val tileSets = hashMapOf<String, TileSet>()
+    private class Entry(val value: TileSet, val file: FileHandle?)
+
+    private val tileSets = hashMapOf<String, Entry>()
 
     val names get() = tileSets.keys.toList()
 
@@ -26,7 +24,7 @@ class TileSetManager {
             return
         }
 
-        val tileSet = TileSet()
+        val tileSet = TileSet(name)
 
         try {
             tileSet.read(Properties().also { it.read(file.readToString()) })
@@ -35,11 +33,11 @@ class TileSetManager {
             return
         }
 
-        add(name, tileSet)
+        add(name, tileSet, file)
     }
 
-    fun add(name: String, tileSet: TileSet) {
-        tileSets[name] = tileSet
+    fun add(name: String, tileSet: TileSet, file: FileHandle? = null) {
+        tileSets[name] = Entry(tileSet, file)
     }
 
     operator fun contains(file: FileHandle) = contains(file.fullPath)
@@ -54,15 +52,17 @@ class TileSetManager {
 
     operator fun get(file: FileHandle) = get(file.fullPath)
 
-    operator fun get(name: String): TileSet {
-        return tileSets[name] ?: EMPTY
+    operator fun get(name: String): TileSet? {
+        return tileSets[name]?.value
     }
+
+    fun getFileHandle(name: String) = tileSets[name]?.file
 
     fun getOrAdd(file: FileHandle, name: String = file.fullPath): TileSet {
         if (name !in this)
             add(file, name)
 
-        return this[name]
+        return requireNotNull(this[name])
     }
 
     operator fun invoke(file: FileHandle, name: String) = Getter(file, name)

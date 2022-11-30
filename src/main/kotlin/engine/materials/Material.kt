@@ -7,12 +7,6 @@ class Material : Properties() {
     var shader by string { "default" }
     val color by color { it.set(Color.WHITE) }
 
-    fun set(material: Material) {
-        colorTexturePath = material.colorTexturePath
-        shader = material.shader
-        color.set(material.color)
-    }
-
     override fun equals(other: Any?): Boolean {
         if (other == null)
             return false

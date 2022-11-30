@@ -116,7 +116,6 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
     private var addToLayer = true
     private var lastUpdatedFrame = -1
     private var droppedTimeCounter = 0.0f
-    private var isInteractionEnabledLocal = true
 
     private val inputListener = object : InputListener {
         override fun onKey(key: Key, down: Boolean, time: Double) {
@@ -139,8 +138,10 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
         externalDropLocation.set(touchPosition)
     }
 
+    private val popupStack = arrayListOf<GUIPopup>()
     private val layers = arrayListOf<GUILayer>()
     private var currentLayerIndex = 0
+    private var isInteractionDisabledFromPopup = false
 
     /**
      * If set to false, globally disables interaction by always returning an emtpy bitfield on [getState].
@@ -169,13 +170,6 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
      * @see GUIGroup
      */
     var currentGroup: GUIGroup? = null
-        private set
-
-    /**
-     * The current popup, if one is present.
-     * @see GUIPopup
-     */
-    var currentPopup: GUIPopup? = null
         private set
 
     /**
@@ -238,7 +232,12 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
     /**
      * Whether [setLastElement] should consider the current scissor rectangle for calculating element positions.
      */
-    var useScissorRectForElementPositioning = true
+    var useScissorRectangleForElementPositioning = true
+
+    /**
+     * Is true when any number of popups are open.
+     */
+    val isPopupOpen get() = popupStack.isNotEmpty()
 
     init {
         Kore.input.addListener(inputListener)
@@ -263,7 +262,14 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
         val previousCommandList = currentCommandList
         currentCommandList = currentLayer.commands
 
+        val scissorRectangle = currentScissorRectangle
+        if (scissorRectangle != null)
+            currentCommandList.pushScissor(scissorRectangle.x, scissorRectangle.y, scissorRectangle.width, scissorRectangle.height)
+
         block()
+
+        if (scissorRectangle != null)
+            currentCommandList.popScissor()
 
         currentCommandList = previousCommandList
         currentLayerIndex--
@@ -396,7 +402,7 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
         var elementMaxX = element.x + element.width
         var elementMaxY = element.y + element.height
 
-        if (useScissorRectForElementPositioning)
+        if (useScissorRectangleForElementPositioning)
             currentScissorRectangle?.let {
                 val minX2 = it.minX
                 val minY2 = it.minY
@@ -618,16 +624,19 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
      * @return The state of the area as a bitfield.
      */
     fun getState(rectangle: Rectangle, behaviour: TouchBehaviour = TouchBehaviour.NONE, checkVisibility: Boolean = true): Int {
-        if (!isInteractionEnabled || !isInteractionEnabledLocal)
+        if (!isInteractionEnabled)
+            return 0
+
+        if(isInteractionDisabledFromPopup)
+            return 0
+
+        if (checkVisibility && !isPositionVisible(touchPosition))
+            return 0
+
+        if (!isPositionInsideCurrentScissorRect(touchPosition))
             return 0
 
         var state = 0
-
-        if (checkVisibility && !isPositionVisible(touchPosition))
-            return state
-
-        if (!isPositionInsideCurrentScissorRect(touchPosition))
-            return state
 
         if (touchPosition in rectangle) {
             if (currentDragDropData != null || externalDroppedElements.isNotEmpty()) {
@@ -722,19 +731,19 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
     }
 
     /**
-     * //TODO: Document
+     * @see [popup]
      */
     fun popup(block: GUIPopup.(GUI, Float, Float) -> GUIElement) = popup(object : GUIPopup() {
         override fun draw(gui: GUI, width: Float, height: Float) = block(this, gui, width, height)
     })
 
+    /**
+     * Adds [popup] to the top of this gui's popup stack.
+     * Only the upmost popup of this stack is interactable.
+     */
     fun popup(popup: GUIPopup) {
-        if (currentPopup != null) {
-            Kore.log.error(this::class, "A popup is already open.")
-            return
-        }
-
-        currentPopup = popup
+        popup.isActive = true
+        popupStack += popup
     }
 
     /**
@@ -743,10 +752,10 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
      * @param block The block to execute to retrieve the element.
      */
     fun getElementSize(block: () -> GUIElement): GUIElement {
-        val previousIsInteractionEnabledLocal = isInteractionEnabledLocal
+        val previousIsInteractionEnabled = isInteractionEnabled
         val previousCommandList = currentCommandList
 
-        isInteractionEnabledLocal = false
+        isInteractionEnabled = false
         currentCommandList = GUICommandList()
 
         lateinit var result: GUIElement
@@ -755,7 +764,7 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
             result = block()
         }
 
-        isInteractionEnabledLocal = previousIsInteractionEnabledLocal
+        isInteractionEnabled = previousIsInteractionEnabled
         currentCommandList = previousCommandList
 
         return result
@@ -779,7 +788,7 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
 
         currentDragDropData?.isRendered = false
 
-        isInteractionEnabledLocal = currentPopup == null
+        isInteractionDisabledFromPopup = popupStack.isNotEmpty()
     }
 
     /**
@@ -824,21 +833,37 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
             lastUpdatedFrame = Kore.graphics.statistics.numFrames
         }
 
-        if (isInteractionEnabled)
-            currentPopup?.let {
+        fun drawPopup(index: Int) {
+            val popup = popupStack.getOrNull(index) ?: return
+
+            transient {
+                setLastElement(absolute(0.0f, 0.0f))
+
                 val size = getElementSize {
-                    it.draw(this, 0.0f, 0.0f)
+                    popup.draw(this, 0.0f, 0.0f)
                 }
 
-                transient {
-                    setLastElement(absolute((Kore.graphics.safeWidth - size.width) * 0.5f, (Kore.graphics.safeHeight - size.height) * 0.5f))
-                    isInteractionEnabledLocal = true
-                    it.draw(this, size.width, size.height)
-                    isInteractionEnabledLocal = false
-                }
+                setLastElement(absolute((Kore.graphics.safeWidth - size.width) * 0.5f, (Kore.graphics.safeHeight - size.height) * 0.5f))
 
-                if (!it.isActive)
-                    currentPopup = null
+                if (index == popupStack.lastIndex)
+                    isInteractionDisabledFromPopup = false
+
+                popup.draw(this, size.width, size.height)
+
+                if (index == popupStack.lastIndex)
+                    isInteractionDisabledFromPopup = true
+            }
+
+            if (!popup.isActive) {
+                popupStack.removeAt(index)
+                drawPopup(index)
+            } else
+                drawPopup(index + 1)
+        }
+
+        if (popupStack.isNotEmpty())
+            topLayer {
+                drawPopup(0)
             }
 
         transform.setToOrtho2D(Kore.graphics.safeInsetLeft.toFloat(), Kore.graphics.safeWidth.toFloat(), Kore.graphics.safeHeight.toFloat(), Kore.graphics.safeInsetTop.toFloat())

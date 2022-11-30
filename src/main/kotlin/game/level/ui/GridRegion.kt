@@ -1,4 +1,4 @@
-package game.level
+package game.level.ui
 
 import com.cozmicgames.utils.collections.Array2D
 import game.components.GridCellComponent

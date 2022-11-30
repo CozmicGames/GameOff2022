@@ -4,6 +4,7 @@ import com.cozmicgames.Kore
 import com.cozmicgames.dialogs
 import com.cozmicgames.files
 import com.cozmicgames.files.FileHandle
+import com.cozmicgames.files.nameWithExtension
 import com.cozmicgames.files.nameWithoutExtension
 import com.cozmicgames.graphics
 import com.cozmicgames.graphics.Image
@@ -24,7 +25,7 @@ import game.assets.TextureMetaFile
 import game.extensions.downButton
 import game.extensions.importButton
 import game.extensions.upButton
-import game.level.editorStyle
+import game.level.ui.editorStyle
 import kotlin.math.max
 import kotlin.math.min
 
@@ -38,25 +39,23 @@ class TextureAssetType : AssetType<TextureAssetType>, Disposable {
         private val filterComboboxData = ComboboxData(*Texture.Filter.values())
         private var splitToTiles = false
         private var excludeEmptyImages = true
-        private val tileWidthTextColor = Game.gui.skin.fontColor.copy()
-        private val tileHeightTextColor = Game.gui.skin.fontColor.copy()
 
         private val tileWidthTextData = TextData {
             val width = text.toIntOrNull()
             if (width != null) {
                 tileWidth = width
-                tileWidthTextColor.set(Game.gui.skin.fontColor)
+                overrideFontColor = null
             } else
-                tileWidthTextColor.set(Color.RED)
+                overrideFontColor = Color.SCARLET
         }
 
         private val tileHeightTextData = TextData {
             val height = text.toIntOrNull()
             if (height != null) {
                 tileHeight = height
-                tileHeightTextColor.set(Game.gui.skin.fontColor)
+                overrideFontColor = null
             } else
-                tileHeightTextColor.set(Color.RED)
+                overrideFontColor = Color.SCARLET
         }
 
         private val nameTextData = TextData {}
@@ -159,10 +158,10 @@ class TextureAssetType : AssetType<TextureAssetType>, Disposable {
                     gui.sameLine {
                         gui.textField(tileHeightTextData)
                         gui.group {
-                            gui.upButton(Game.gui.skin.elementSize * 0.5f) {
+                            gui.upButton(gui.skin.elementSize * 0.5f) {
                                 tileHeight++
                             }
-                            gui.downButton(Game.gui.skin.elementSize * 0.5f) {
+                            gui.downButton(gui.skin.elementSize * 0.5f) {
                                 tileHeight--
                             }
                         }
@@ -196,7 +195,7 @@ class TextureAssetType : AssetType<TextureAssetType>, Disposable {
                                 val metaFile = TextureMetaFile()
                                 metaFile.name = imageFileName
                                 metaFile.filter = selectedFilter
-                                metaFile.write(assetFile.sibling("${assetFile.nameWithoutExtension}.meta"))
+                                metaFile.write(assetFile.sibling("${assetFile.nameWithExtension}.meta"))
 
                                 Game.textures.add(imageFileName, it, selectedFilter)
                             }
@@ -217,7 +216,7 @@ class TextureAssetType : AssetType<TextureAssetType>, Disposable {
                 val metaFile = TextureMetaFile()
                 metaFile.name = imageFileName
                 metaFile.filter = selectedFilter
-                metaFile.write(assetFile.sibling("${assetFile.nameWithoutExtension}.meta"))
+                metaFile.write(assetFile.sibling("${assetFile.nameWithExtension}.meta"))
 
                 Game.textures.add(assetFile, filter = selectedFilter)
             }
@@ -240,7 +239,7 @@ class TextureAssetType : AssetType<TextureAssetType>, Disposable {
 
     private val imageImportPopup = ImageImportPopup()
 
-    override fun preview(gui: GUI, size: Float, name: String) {
+    override fun preview(gui: GUI, size: Float, name: String, showEditIcon: Boolean) {
         gui.image(Game.textures[name], size)
     }
 
@@ -258,7 +257,7 @@ class TextureAssetType : AssetType<TextureAssetType>, Disposable {
     }
 
     override fun load(file: FileHandle) {
-        val metaFileHandle = file.sibling("${file.nameWithoutExtension}.meta")
+        val metaFileHandle = file.sibling("${file.nameWithExtension}.meta")
 
         var filter = Texture.Filter.NEAREST
 

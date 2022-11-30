@@ -13,7 +13,9 @@ class ShaderManager : Disposable {
         operator fun getValue(thisRef: Any, property: KProperty<*>) = getOrAdd(file, name)
     }
 
-    private val shaders = hashMapOf<String, Shader>()
+    private class Entry(val value: Shader, val file: FileHandle?)
+
+    private val shaders = hashMapOf<String, Entry>()
 
     val names get() = shaders.keys.toList()
 
@@ -34,11 +36,11 @@ class ShaderManager : Disposable {
             return
         }
 
-        add(name, shader)
+        add(name, shader, file)
     }
 
-    fun add(name: String, shader: Shader) {
-        shaders[name] = shader
+    fun add(name: String, shader: Shader, file: FileHandle? = null) {
+        shaders[name] = Entry(shader, file)
     }
 
     operator fun contains(file: FileHandle) = contains(file.fullPath)
@@ -54,8 +56,10 @@ class ShaderManager : Disposable {
     operator fun get(file: FileHandle) = get(file.fullPath)
 
     operator fun get(name: String): Shader? {
-        return shaders[name]
+        return shaders[name]?.value
     }
+
+    fun getFileHandle(name: String) = shaders[name]?.file
 
     fun getOrAdd(file: FileHandle, name: String = file.fullPath): Shader {
         if (name !in this)

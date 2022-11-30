@@ -35,7 +35,6 @@ object Game : Application {
     val controls by Kore.context.injector(true) { ControlManager() }
     val graphics2d by Kore.context.injector(true) { Graphics2D() }
     val renderer by Kore.context.injector(true) { RenderManager() }
-    val gui by Kore.context.injector(true) { GUI() }
 
     val physics by Kore.context.injector(true) { Physics() }
     val rumble by Kore.context.injector(true) { Rumble() }
@@ -43,9 +42,13 @@ object Game : Application {
 
     private lateinit var currentState: GameState
 
+    private lateinit var gui: GUI
+    private var isPaused = false
     private var showStatistics = false
 
     override fun onCreate() {
+        gui = GUI()
+
         camera.position.setZero()
         camera.update()
 
@@ -54,6 +57,9 @@ object Game : Application {
     }
 
     override fun onFrame(delta: Float) {
+        if (isPaused)
+            return
+
         val newState = currentState.onFrame(delta)
 
         if (currentState != newState) {
@@ -111,11 +117,11 @@ object Game : Application {
     }
 
     override fun onPause() {
-
+        isPaused = true
     }
 
     override fun onResume() {
-
+        isPaused = false
     }
 
     override fun onResize(width: Int, height: Int) {
@@ -125,5 +131,6 @@ object Game : Application {
 
     override fun onDispose() {
         currentState.onDestroy()
+        gui.dispose()
     }
 }

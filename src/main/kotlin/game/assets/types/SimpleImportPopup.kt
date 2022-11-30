@@ -3,7 +3,7 @@ package game.assets.types
 import com.cozmicgames.Kore
 import com.cozmicgames.files
 import com.cozmicgames.files.FileHandle
-import com.cozmicgames.files.nameWithoutExtension
+import com.cozmicgames.files.nameWithExtension
 import com.cozmicgames.utils.extensions.nameWithExtension
 import engine.Game
 import engine.graphics.ui.GUI
@@ -16,7 +16,10 @@ import game.assets.MetaFile
 abstract class SimpleImportPopup(type: AssetType<*>, titleString: String) : ImportPopup(type, titleString) {
     private lateinit var file: String
 
-    private val nameTextData = TextData {}
+    private val nameTextData = TextData {
+        onImport()
+        closePopup()
+    }
 
     protected abstract fun onImport(file: FileHandle, name: String)
 
@@ -26,6 +29,8 @@ abstract class SimpleImportPopup(type: AssetType<*>, titleString: String) : Impo
     }
 
     override fun drawContent(gui: GUI, width: Float, height: Float) {
+        gui.currentTextData = nameTextData
+
         gui.sameLine {
             gui.group {
                 gui.label("Original filename", null)
@@ -49,7 +54,7 @@ abstract class SimpleImportPopup(type: AssetType<*>, titleString: String) : Impo
 
             val metaFile = MetaFile()
             metaFile.name = nameTextData.text
-            metaFile.write(assetFile.sibling("${assetFile.nameWithoutExtension}.meta"))
+            metaFile.write(assetFile.sibling("${assetFile.nameWithExtension}.meta"))
         }
 
         onImport(assetFile, nameTextData.text)

@@ -4,11 +4,14 @@ import com.cozmicgames.Kore
 import com.cozmicgames.input
 import com.cozmicgames.input.Key
 import com.cozmicgames.input.Keys
+import com.cozmicgames.utils.Color
 import com.cozmicgames.utils.extensions.clamp
 import kotlin.math.max
 import kotlin.math.min
 
-class TextData(text: String = "", var onEnter: TextData.() -> Unit) {
+open class TextData(text: String = "", var onEnter: TextData.() -> Unit = {}) {
+    var overrideFontColor: Color? = null
+
     var text = text
         private set
 

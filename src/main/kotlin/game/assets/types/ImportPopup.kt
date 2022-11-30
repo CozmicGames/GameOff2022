@@ -10,7 +10,7 @@ import engine.graphics.ui.widgets.dropShadow
 import engine.graphics.ui.widgets.label
 import engine.graphics.ui.widgets.textButton
 import game.assets.AssetType
-import game.level.editorStyle
+import game.level.ui.editorStyle
 
 abstract class ImportPopup(val type: AssetType<*>, val titleString: String) : GUIPopup() {
     abstract fun reset(file: String)

@@ -2,7 +2,8 @@ package game.assets.types
 
 import com.cozmicgames.*
 import com.cozmicgames.files.FileHandle
-import com.cozmicgames.files.nameWithoutExtension
+import com.cozmicgames.files.nameWithExtension
+import com.cozmicgames.files.writeString
 import engine.Game
 import engine.graphics.ui.DragDropData
 import engine.graphics.ui.GUI
@@ -11,10 +12,12 @@ import engine.graphics.ui.widgets.label
 import engine.materials.Material
 import game.assets.AssetType
 import game.assets.MetaFile
+import game.extensions.editable
 import game.extensions.importButton
 import game.extensions.materialPreview
 import game.extensions.plusButton
-import game.level.editorStyle
+import game.level.ui.MaterialEditorPopup
+import game.level.ui.editorStyle
 
 class MaterialAssetType : AssetType<MaterialAssetType> {
     inner class MaterialImportPopup : SimpleImportPopup(this, "Import material") {
@@ -33,11 +36,21 @@ class MaterialAssetType : AssetType<MaterialAssetType> {
 
     override val assetNames get() = Game.materials.names
 
-    private val createFilePopup = CreateFilePopup()
+    private val createFilePopup = CreateFilePopup("material")
     private val importPopup = MaterialImportPopup()
+    private val editorPopup = MaterialEditorPopup()
 
-    override fun preview(gui: GUI, size: Float, name: String) {
-        gui.materialPreview(Game.materials[name] ?: Game.graphics2d.missingMaterial, size)
+    override fun preview(gui: GUI, size: Float, name: String, showEditIcon: Boolean) {
+        if (showEditIcon && Game.materials.getFileHandle(name)?.isWritable != false)
+            gui.editable({ gui.materialPreview(Game.materials[name] ?: Game.graphics2d.missingMaterial, size) }, size * 0.25f) {
+                Kore.onNextFrame {
+                    editorPopup.reset(name)
+                    gui.popup(editorPopup)
+                }
+            }
+        else
+            gui.materialPreview(Game.materials[name] ?: Game.graphics2d.missingMaterial, size)
+
     }
 
     override fun createDragDropData(name: String) = { DragDropData(MaterialAsset(name)) { label(name) } }
@@ -46,7 +59,9 @@ class MaterialAssetType : AssetType<MaterialAssetType> {
         list += {
             gui.plusButton(Game.editorStyle.assetElementWidth) {
                 createFilePopup.reset {
-                    Game.materials.add(it, Material())
+                    val assetFile = Kore.files.local("assets/$it")
+                    assetFile.writeString(Material().write(true), false)
+                    Game.materials.add(it, Material(), assetFile)
                 }
                 gui.popup(createFilePopup)
             }
@@ -63,7 +78,7 @@ class MaterialAssetType : AssetType<MaterialAssetType> {
     }
 
     override fun load(file: FileHandle) {
-        val metaFileHandle = file.sibling("${file.nameWithoutExtension}.meta")
+        val metaFileHandle = file.sibling("${file.nameWithExtension}.meta")
 
         val name = if (metaFileHandle.exists) {
             val metaFile = MetaFile()

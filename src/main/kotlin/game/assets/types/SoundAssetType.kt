@@ -2,7 +2,7 @@ package game.assets.types
 
 import com.cozmicgames.*
 import com.cozmicgames.files.FileHandle
-import com.cozmicgames.files.nameWithoutExtension
+import com.cozmicgames.files.nameWithExtension
 import engine.Game
 import engine.graphics.ui.DragDropData
 import engine.graphics.ui.GUI
@@ -12,7 +12,7 @@ import engine.graphics.ui.widgets.label
 import game.assets.AssetType
 import game.assets.MetaFile
 import game.extensions.importButton
-import game.level.editorStyle
+import game.level.ui.editorStyle
 
 class SoundAssetType : AssetType<SoundAssetType> {
     inner class SoundImportPopup : SimpleImportPopup(this, "Import sound") {
@@ -33,7 +33,7 @@ class SoundAssetType : AssetType<SoundAssetType> {
 
     private val importPopup = SoundImportPopup()
 
-    override fun preview(gui: GUI, size: Float, name: String) {
+    override fun preview(gui: GUI, size: Float, name: String, showEditIcon: Boolean) {
         gui.image(Game.textures["internal/images/assettype_sound.png"], size)
     }
 
@@ -51,7 +51,7 @@ class SoundAssetType : AssetType<SoundAssetType> {
     }
 
     override fun load(file: FileHandle) {
-        val metaFileHandle = file.sibling("${file.nameWithoutExtension}.meta")
+        val metaFileHandle = file.sibling("${file.nameWithExtension}.meta")
 
         val name = if (metaFileHandle.exists) {
             val metaFile = MetaFile()

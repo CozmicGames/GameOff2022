@@ -22,7 +22,7 @@ class GridComponent : Component(), Updateable {
         fun rebuildDrawables() {
             removeDrawables()
 
-            val tileSet = Game.tileSets[tileSet]
+            val tileSet = Game.tileSets[tileSet] ?: return
 
             val batches = hashMapOf<String, MutableList<GridCellComponent>>()
 
@@ -38,9 +38,9 @@ class GridComponent : Component(), Updateable {
                     if (gridCellComponent.cellX !in minTileX until maxTileX || gridCellComponent.cellY !in minTileY until maxTileY)
                         continue
 
-                    val material = tileSet[gridCellComponent.tileType].getMaterial(this@GridComponent, gridCellComponent.cellX, gridCellComponent.cellY)
+                    val material = tileSet[gridCellComponent.tileType]?.getMaterial(this@GridComponent, gridCellComponent.cellX, gridCellComponent.cellY)
 
-                    batches.getOrPut(material) { arrayListOf() } += gridCellComponent
+                    batches.getOrPut(material ?: "<missing>") { arrayListOf() } += gridCellComponent
                 }
             }
 

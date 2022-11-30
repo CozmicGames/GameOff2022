@@ -13,7 +13,9 @@ class FontManager : Disposable {
         operator fun getValue(thisRef: Any, property: KProperty<*>) = getOrAdd(file, name)
     }
 
-    private val fonts = hashMapOf<String, Font>()
+    private class Entry(val value: Font, val file: FileHandle?)
+
+    private val fonts = hashMapOf<String, Entry>()
 
     val names get() = fonts.keys.toList()
 
@@ -33,8 +35,8 @@ class FontManager : Disposable {
         add(name, font)
     }
 
-    fun add(name: String, font: Font) {
-        fonts[name] = font
+    fun add(name: String, font: Font, file: FileHandle? = null) {
+        fonts[name] = Entry(font, file)
     }
 
     operator fun contains(file: FileHandle) = contains(file.fullPath)
@@ -50,8 +52,10 @@ class FontManager : Disposable {
     operator fun get(file: FileHandle) = get(file.fullPath)
 
     operator fun get(name: String): Font? {
-        return fonts[name]
+        return fonts[name]?.value
     }
+
+    fun getFileHandle(name: String) = fonts[name]?.file
 
     fun getOrAdd(file: FileHandle, name: String = file.fullPath): Font {
         if (name !in this)

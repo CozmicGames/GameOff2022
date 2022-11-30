@@ -2,7 +2,8 @@ package game.assets.types
 
 import com.cozmicgames.Kore
 import com.cozmicgames.files
-import com.cozmicgames.files.nameWithoutExtension
+import com.cozmicgames.files.nameWithExtension
+import com.cozmicgames.utils.use
 import engine.Game
 import engine.graphics.font.HAlign
 import engine.graphics.ui.GUI
@@ -11,17 +12,37 @@ import engine.graphics.ui.GUIPopup
 import engine.graphics.ui.TextData
 import engine.graphics.ui.widgets.*
 import game.assets.MetaFile
-import game.level.editorStyle
+import game.level.ui.editorStyle
 
-class CreateFilePopup : GUIPopup() {
-    private val nameTextData = TextData {}
+class CreateFilePopup(val extension: String) : GUIPopup() {
+    private val nameTextData = TextData {
+        create()
+    }
+
     private lateinit var onCreate: (String) -> Unit
 
     fun reset(onCreate: (String) -> Unit) {
         this.onCreate = onCreate
+        nameTextData.setText("")
+    }
+
+    private fun create() {
+        var name = nameTextData.text
+        if (!name.endsWith(".$extension"))
+            name = "$name.$extension"
+
+        onCreate(name)
+
+        val assetFile = Kore.files.local("assets/$name")
+        val metaFile = MetaFile()
+        metaFile.name = name
+        metaFile.write(assetFile.sibling("${assetFile.nameWithExtension}.meta"))
+        closePopup()
     }
 
     override fun draw(gui: GUI, width: Float, height: Float): GUIElement {
+        gui.currentTextData = nameTextData
+
         return gui.dropShadow(Game.editorStyle.createFilePopupDropShadowColor) {
             gui.bordered(Game.editorStyle.createFilePopupBorderColor, Game.editorStyle.createFilePopupBorderSize) {
                 gui.group(Game.editorStyle.createFilePopupContentBackgroundColor) {
@@ -35,13 +56,7 @@ class CreateFilePopup : GUIPopup() {
 
                     val createButton = {
                         gui.textButton("Create") {
-                            onCreate(nameTextData.text)
-
-                            val assetFile = Kore.files.local("assets/${nameTextData.text}")
-                            val metaFile = MetaFile()
-                            metaFile.name = nameTextData.text
-                            metaFile.write(assetFile.sibling("${assetFile.nameWithoutExtension}.meta"))
-                            closePopup()
+                            create()
                         }
                     }
 

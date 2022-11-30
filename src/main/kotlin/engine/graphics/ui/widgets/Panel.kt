@@ -21,25 +21,29 @@ import engine.graphics.ui.drawRectFilled
 fun GUI.panel(width: Float, height: Float, scroll: Vector2, backgroundColor: Color = skin.backgroundColor, titleColor: Color = skin.backgroundColor, title: (() -> GUIElement)? = null, block: () -> Unit): GUIElement {
     val (x, y) = getLastElement()
 
-    lateinit var element: GUIElement
+    //lateinit var element: GUIElement
 
     var titleHeight = 0.0f
 
-    if (title != null) {
-        val titleCommands = recordCommands {
-            titleHeight = title().height
+    val element = group {
+        if (title != null) {
+            val titleCommands = recordCommands {
+                titleHeight = title().height
+            }
+
+            currentCommandList.drawRectFilled(x, y, width, titleHeight, Corners.NONE, 0.0f, titleColor)
+            currentCommandList.addCommandList(titleCommands)
         }
 
-        currentCommandList.drawRectFilled(x, y, width, titleHeight, Corners.NONE, 0.0f, titleColor)
-        currentCommandList.addCommandList(titleCommands)
-    }
+        lateinit var contentElement: GUIElement
 
-    val commands = recordCommands {
-        element = scrollArea(width - (skin.scrollbarSize + skin.elementPadding * 2.0f), height - (skin.scrollbarSize + skin.elementPadding * 2.0f) - titleHeight, scroll, block)
-    }
+        val commands = recordCommands {
+            contentElement = scrollArea(width - (skin.scrollbarSize + skin.elementPadding * 2.0f), height - (skin.scrollbarSize + skin.elementPadding * 2.0f) - titleHeight, scroll, block)
+        }
 
-    currentCommandList.drawRectFilled(element.x, element.y, width, height, Corners.NONE, 0.0f, backgroundColor)
-    currentCommandList.addCommandList(commands)
+        currentCommandList.drawRectFilled(contentElement.x, contentElement.y, width, height, Corners.NONE, 0.0f, backgroundColor)
+        currentCommandList.addCommandList(commands)
+    }
 
     return setLastElement(element.x, element.y, width, height)
 }

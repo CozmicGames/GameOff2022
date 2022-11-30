@@ -1,0 +1,10 @@
+{
+    "name": {
+        "type": "STRING",
+        "value": "internal/images/layer_invisible.png"
+    },
+    "filterName": {
+        "type": "STRING",
+        "value": "LINEAR"
+    }
+}

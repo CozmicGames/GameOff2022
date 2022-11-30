@@ -2,7 +2,7 @@ package engine.graphics.ui
 
 abstract class GUIPopup {
     var isActive = true
-        private set
+        internal set
 
     fun closePopup() {
         isActive = false

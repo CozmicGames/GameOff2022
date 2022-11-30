@@ -11,7 +11,9 @@ class MaterialManager {
         operator fun getValue(thisRef: Any, property: KProperty<*>) = getOrAdd(file, name)
     }
 
-    private val materials = hashMapOf<String, Material>()
+    private class Entry(val value: Material, val file: FileHandle?)
+
+    private val materials = hashMapOf<String, Entry>()
 
     val names get() = materials.keys.toList()
 
@@ -30,11 +32,11 @@ class MaterialManager {
             return
         }
 
-        add(name, material)
+        add(name, material, file)
     }
 
-    fun add(name: String, material: Material) {
-        materials[name] = material
+    fun add(name: String, material: Material, file: FileHandle? = null) {
+        materials[name] = Entry(material, file)
     }
 
     operator fun contains(file: FileHandle) = contains(file.fullPath)
@@ -50,8 +52,10 @@ class MaterialManager {
     operator fun get(file: FileHandle) = get(file.fullPath)
 
     operator fun get(name: String): Material? {
-        return materials[name]
+        return materials[name]?.value
     }
+
+    fun getFileHandle(name: String) = materials[name]?.file
 
     fun getOrAdd(file: FileHandle, name: String = file.fullPath): Material {
         if (name !in this)
@@ -61,5 +65,4 @@ class MaterialManager {
     }
 
     operator fun invoke(file: FileHandle, name: String = file.fullPath) = Getter(file, name)
-
 }

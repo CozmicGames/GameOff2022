@@ -1,0 +1,10 @@
+{
+    "name": {
+        "type": "STRING",
+        "value": "internal/images/delete_tiletype.png"
+    },
+    "filterName": {
+        "type": "STRING",
+        "value": "LINEAR"
+    }
+}

@@ -5,8 +5,11 @@ import com.cozmicgames.utils.maths.Rectangle
 import engine.Game
 import engine.graphics.shaders.DefaultShader
 import engine.graphics.ui.*
-import engine.graphics.ui.widgets.imageButton
+import engine.graphics.ui.widgets.*
 import engine.materials.Material
+import game.assets.types.ShaderAssetType
+import game.assets.types.TextureAssetType
+import game.level.ui.editorStyle
 import java.lang.Float.min
 import kotlin.math.sqrt
 
@@ -82,6 +85,11 @@ fun GUI.downButton(width: Float = skin.elementSize, height: Float = width, actio
     return setLastElement(x, y, width, height)
 }
 
+fun GUI.layerVisibleButton(isVisible: Boolean, width: Float = skin.elementSize, height: Float = width, color: Color = Color.WHITE, backgroundColor: Color? = null, action: () -> Unit): GUIElement {
+    val texture = Game.textures[if (isVisible) "internal/images/layer_visible.png" else "internal/images/layer_invisible.png"]
+    return imageButton(texture, width, height, color, backgroundColor, action)
+}
+
 fun GUI.materialPreview(material: Material, width: Float = skin.elementSize, height: Float = width, borderThickness: Float = skin.strokeThickness): GUIElement {
     val (x, y) = getLastElement()
 
@@ -100,10 +108,24 @@ fun GUI.materialPreview(material: Material, width: Float = skin.elementSize, hei
 fun GUI.editable(element: () -> GUIElement, size: Float, action: () -> Unit): GUIElement {
     val elementWidth = getElementSize(element).width
 
-    transient {
+    transient(ignoreGroup = true) {
         layerUp {
             offset(elementWidth - size * 1.25f, size * 0.25f) {
                 imageButton(Game.textures["internal/images/edit_tiletype.png"], size, action = action)
+            }
+        }
+    }
+
+    return element()
+}
+
+fun GUI.deletable(element: () -> GUIElement, size: Float, action: () -> Unit): GUIElement {
+    val elementWidth = getElementSize(element).width
+
+    transient(ignoreGroup = true) {
+        layerUp {
+            offset(elementWidth - size * 1.25f, size * 0.25f) {
+                imageButton(Game.textures["internal/images/delete_tiletype.png"], size, color = Color.SCARLET, action = action)
             }
         }
     }
@@ -185,8 +207,8 @@ fun GUI.multilineListWithSameElementWidths(maxWidth: Float, elementWidth: Float,
     }
 }
 
-fun GUI.importButton(width: Float, height: Float = width, action: () -> Unit) = imageButton(Game.textures["internal/images/import_button.png"], width, height, action)
+fun GUI.importButton(width: Float, height: Float = width, action: () -> Unit) = imageButton(Game.textures["internal/images/import_button.png"], width, height, action = action)
 
-fun GUI.plusButton(width: Float, height: Float = width, action: () -> Unit) = imageButton(Game.textures["internal/images/plus_button.png"], width, height, action)
+fun GUI.plusButton(width: Float, height: Float = width, action: () -> Unit) = imageButton(Game.textures["internal/images/plus_button.png"], width, height, action = action)
 
-fun GUI.minusButton(width: Float, height: Float = width, action: () -> Unit) = imageButton(Game.textures["internal/images/minus_button.png"], width, height, action)
+fun GUI.minusButton(width: Float, height: Float = width, action: () -> Unit) = imageButton(Game.textures["internal/images/minus_button.png"], width, height, action = action)

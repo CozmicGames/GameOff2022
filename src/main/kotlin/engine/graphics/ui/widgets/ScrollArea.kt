@@ -30,10 +30,10 @@ fun GUI.scrollArea(maxWidth: Float? = null, maxHeight: Float? = null, scroll: Ve
 
     val scissorRectangle = Rectangle(x, y, maxWidth ?: (Kore.graphics.width - x), maxHeight ?: (Kore.graphics.height - y))
     val previousScissorRectangle = currentScissorRectangle
-    val previousUseScissorRectForElementPositioning = useScissorRectForElementPositioning
+    val previousUseScissorRectangleForElementPositioning = useScissorRectangleForElementPositioning
 
     currentScissorRectangle = scissorRectangle
-    useScissorRectForElementPositioning = false
+    useScissorRectangleForElementPositioning = false
 
     lateinit var content: GUIElement
 
@@ -45,7 +45,7 @@ fun GUI.scrollArea(maxWidth: Float? = null, maxHeight: Float? = null, scroll: Ve
     }
 
     currentScissorRectangle = previousScissorRectangle
-    useScissorRectForElementPositioning = previousUseScissorRectForElementPositioning
+    useScissorRectangleForElementPositioning = previousUseScissorRectangleForElementPositioning
 
     val contentWidth: Float
     val contentHeight: Float

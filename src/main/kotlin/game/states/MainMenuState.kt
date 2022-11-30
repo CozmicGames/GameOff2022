@@ -8,26 +8,30 @@ import engine.graphics.ui.GUI
 import engine.graphics.ui.widgets.textButton
 
 class MainMenuState : GameState {
-    private val ui = GUI()
+    private lateinit var gui: GUI
+
+    override fun onCreate() {
+        gui = GUI()
+    }
 
     override fun onFrame(delta: Float): GameState {
         Kore.graphics.clear(Color.LIME)
 
         var returnState = this as GameState
 
-        ui.begin()
-        ui.textButton("Test level") {
+        gui.begin()
+        gui.textButton("Test level") {
             returnState = LevelGameState()
         }
-        ui.textButton("Edit level") {
+        gui.textButton("Edit level") {
             returnState = LevelEditorGameState()
         }
-        ui.end()
+        gui.end()
 
         return returnState
     }
 
     override fun onDestroy() {
-        ui.dispose()
+        gui.dispose()
     }
 }

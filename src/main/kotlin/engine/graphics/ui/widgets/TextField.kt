@@ -38,7 +38,7 @@ fun GUI.textField(textData: TextData, minWidth: Float = skin.elementSize, action
         currentTextData = null
 
     currentCommandList.drawRectFilled(rectangle.x, rectangle.y, rectangle.width, rectangle.height, skin.roundedCorners, skin.cornerRounding, skin.backgroundColor)
-    currentCommandList.drawText(x + skin.elementPadding, y + skin.elementPadding, layout, skin.fontColor)
+    currentCommandList.drawText(x + skin.elementPadding, y + skin.elementPadding, layout, textData.overrideFontColor ?: skin.fontColor)
 
     if (textData == currentTextData) {
         if (textData.isSelectionActive) {
