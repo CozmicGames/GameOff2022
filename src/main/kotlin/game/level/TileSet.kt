@@ -35,7 +35,7 @@ class TileSet(val name: String) : Disposable {
         object EmptyDependency : Dependency(Type.EMPTY)
 
         class TileTypeDependency : Dependency(Type.TILE) {
-            var tileTypes = arrayListOf<String>()
+            var tileTypes = hashSetOf<String>()
         }
 
         inner class Rule : Disposable {
@@ -133,14 +133,21 @@ class TileSet(val name: String) : Disposable {
             if (rulesInternal.isEmpty())
                 return defaultMaterial
 
-            val tileTypeTopLeft = gridComponent.getCellType(cellX - 1, cellY + 1)
-            val tileTypeTopCenter = gridComponent.getCellType(cellX, cellY + 1)
-            val tileTypeTopRight = gridComponent.getCellType(cellX + 1, cellY + 1)
-            val tileTypeCenterLeft = gridComponent.getCellType(cellX - 1, cellY)
-            val tileTypeCenterRight = gridComponent.getCellType(cellX + 1, cellY)
-            val tileTypeBottomLeft = gridComponent.getCellType(cellX - 1, cellY - 1)
-            val tileTypeBottomCenter = gridComponent.getCellType(cellX, cellY - 1)
-            val tileTypeBottomRight = gridComponent.getCellType(cellX + 1, cellY - 1)
+            val topLeft = gridComponent.getCellType(cellX - 1, cellY + 1)
+            val topCenter = gridComponent.getCellType(cellX, cellY + 1)
+            val topRight = gridComponent.getCellType(cellX + 1, cellY + 1)
+            val centerLeft = gridComponent.getCellType(cellX - 1, cellY)
+            val centerRight = gridComponent.getCellType(cellX + 1, cellY)
+            val bottomLeft = gridComponent.getCellType(cellX - 1, cellY - 1)
+            val bottomCenter = gridComponent.getCellType(cellX, cellY - 1)
+            val bottomRight = gridComponent.getCellType(cellX + 1, cellY - 1)
+
+            return getMaterial(topLeft, topCenter, topRight, centerLeft, centerRight, bottomLeft, bottomCenter, bottomRight)
+        }
+
+        fun getMaterial(topLeft: String? = null, topCenter: String? = null, topRight: String? = null, centerLeft: String? = null, centerRight: String? = null, bottomLeft: String? = null, bottomCenter: String? = null, bottomRight: String? = null): String {
+            if (rulesInternal.isEmpty())
+                return defaultMaterial
 
             fun checkDependency(dependency: Dependency?, tileType: String?): Boolean {
                 if (dependency == null)
@@ -156,28 +163,28 @@ class TileSet(val name: String) : Disposable {
             var material = defaultMaterial
 
             for (rule in rulesInternal) {
-                if (!checkDependency(rule.dependencyTopLeft, tileTypeTopLeft))
+                if (!checkDependency(rule.dependencyTopLeft, topLeft))
                     continue
 
-                if (!checkDependency(rule.dependencyTopCenter, tileTypeTopCenter))
+                if (!checkDependency(rule.dependencyTopCenter, topCenter))
                     continue
 
-                if (!checkDependency(rule.dependencyTopRight, tileTypeTopRight))
+                if (!checkDependency(rule.dependencyTopRight, topRight))
                     continue
 
-                if (!checkDependency(rule.dependencyCenterLeft, tileTypeCenterLeft))
+                if (!checkDependency(rule.dependencyCenterLeft, centerLeft))
                     continue
 
-                if (!checkDependency(rule.dependencyCenterRight, tileTypeCenterRight))
+                if (!checkDependency(rule.dependencyCenterRight, centerRight))
                     continue
 
-                if (!checkDependency(rule.dependencyBottomLeft, tileTypeBottomLeft))
+                if (!checkDependency(rule.dependencyBottomLeft, bottomLeft))
                     continue
 
-                if (!checkDependency(rule.dependencyBottomCenter, tileTypeBottomCenter))
+                if (!checkDependency(rule.dependencyBottomCenter, bottomCenter))
                     continue
 
-                if (!checkDependency(rule.dependencyBottomRight, tileTypeBottomRight))
+                if (!checkDependency(rule.dependencyBottomRight, bottomRight))
                     continue
 
                 material = rule.material

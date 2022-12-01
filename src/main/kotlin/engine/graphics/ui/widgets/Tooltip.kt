@@ -11,34 +11,38 @@ fun GUI.tooltip(element: GUIElement, text: String, backgroundColor: Color? = ski
     if (!shouldShowTooltip)
         return element
 
-    val layout = GlyphLayout(text, drawableFont)
+    topLayer {
+        layerUp {
+            val layout = GlyphLayout(text, drawableFont)
 
-    var x = touchPosition.x
-    var y = touchPosition.y - (layout.height + skin.elementPadding * 2.0f)
+            var x = touchPosition.x
+            var y = touchPosition.y - (layout.height + skin.elementPadding * 2.0f)
 
-    if (x + layout.width > Kore.graphics.width)
-        x -= layout.width
+            if (x + layout.width > Kore.graphics.width)
+                x -= layout.width
 
-    if (y + layout.height < 0.0f)
-        y += layout.height
+            if (y + layout.height < 0.0f)
+                y += layout.height
 
-    val textX = x + skin.elementPadding
-    val textY = y + skin.elementPadding
-    val width = layout.width + 2.0f * skin.elementPadding
-    val height = layout.height + 2.0f * skin.elementPadding
+            val textX = x + skin.elementPadding
+            val textY = y + skin.elementPadding
+            val width = layout.width + 2.0f * skin.elementPadding
+            val height = layout.height + 2.0f * skin.elementPadding
 
-    val rectangle = Rectangle()
-    rectangle.x = element.x
-    rectangle.y = element.y
-    rectangle.width = element.width
-    rectangle.height = element.height
+            val rectangle = Rectangle()
+            rectangle.x = element.x
+            rectangle.y = element.y
+            rectangle.width = element.width
+            rectangle.height = element.height
 
-    if (GUI.State.HOVERED in getState(rectangle)) {
-        topLayer {
-            if (backgroundColor != null)
-                currentCommandList.drawRectFilled(x, y, width, height, skin.roundedCorners, skin.cornerRounding, backgroundColor)
+            if (GUI.State.HOVERED in getState(rectangle)) {
+                topLayer {
+                    if (backgroundColor != null)
+                        currentCommandList.drawRectFilled(x, y, width, height, skin.roundedCorners, skin.cornerRounding, backgroundColor)
 
-            currentCommandList.drawText(textX, textY, layout, skin.fontColor)
+                    currentCommandList.drawText(textX, textY, layout, skin.fontColor)
+                }
+            }
         }
     }
 

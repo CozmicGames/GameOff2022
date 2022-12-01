@@ -7,8 +7,7 @@ import engine.graphics.shaders.DefaultShader
 import engine.graphics.ui.*
 import engine.graphics.ui.widgets.*
 import engine.materials.Material
-import game.assets.types.ShaderAssetType
-import game.assets.types.TextureAssetType
+import game.level.TileSet
 import game.level.ui.editorStyle
 import java.lang.Float.min
 import kotlin.math.sqrt
@@ -105,12 +104,12 @@ fun GUI.materialPreview(material: Material, width: Float = skin.elementSize, hei
     return setLastElement(x, y, width, height)
 }
 
-fun GUI.editable(element: () -> GUIElement, size: Float, action: () -> Unit): GUIElement {
+fun GUI.editable(element: () -> GUIElement, size: Float, isTopRight: Boolean = true, action: () -> Unit): GUIElement {
     val elementWidth = getElementSize(element).width
 
     transient(ignoreGroup = true) {
         layerUp {
-            offset(elementWidth - size * 1.25f, size * 0.25f) {
+            offset(if (isTopRight) elementWidth - size * 1.25f else size * 0.25f, size * 0.25f) {
                 imageButton(Game.textures["internal/images/edit_tiletype.png"], size, action = action)
             }
         }
@@ -119,12 +118,12 @@ fun GUI.editable(element: () -> GUIElement, size: Float, action: () -> Unit): GU
     return element()
 }
 
-fun GUI.deletable(element: () -> GUIElement, size: Float, action: () -> Unit): GUIElement {
+fun GUI.deletable(element: () -> GUIElement, size: Float, isTopRight: Boolean = true, action: () -> Unit): GUIElement {
     val elementWidth = getElementSize(element).width
 
     transient(ignoreGroup = true) {
         layerUp {
-            offset(elementWidth - size * 1.25f, size * 0.25f) {
+            offset(if (isTopRight) elementWidth - size * 1.25f else size * 0.25f, size * 0.25f) {
                 imageButton(Game.textures["internal/images/delete_tiletype.png"], size, color = Color.SCARLET, action = action)
             }
         }
@@ -212,3 +211,82 @@ fun GUI.importButton(width: Float, height: Float = width, action: () -> Unit) = 
 fun GUI.plusButton(width: Float, height: Float = width, action: () -> Unit) = imageButton(Game.textures["internal/images/plus_button.png"], width, height, action = action)
 
 fun GUI.minusButton(width: Float, height: Float = width, action: () -> Unit) = imageButton(Game.textures["internal/images/minus_button.png"], width, height, action = action)
+
+fun GUI.ruleDependencyTypeEditor(element: () -> GUIElement, dependencyType: TileSet.TileType.Dependency.Type?, isOpen: Boolean, openAction: (Boolean) -> Unit, action: (TileSet.TileType.Dependency.Type?) -> Unit): GUIElement {
+    val elementWidth = getElementSize(element).width
+
+    transient(ignoreGroup = true) {
+        layerUp {
+            val handleSize = skin.elementSize
+
+            if (!isOpen)
+                offset(elementWidth - handleSize - skin.elementPadding, skin.elementPadding) {
+                    imageButton(Game.textures["internal/images/open_rule_dependency_editor.png"], handleSize) {
+                        openAction(true)
+                    }
+                }
+            else {
+                var availableTitleLabelWidth: Float? = null
+
+                val titleLabel = {
+                    label("Choose type", maxWidth = availableTitleLabelWidth)
+                }
+
+                val titleLabelWidth = getElementSize(titleLabel).width
+                val titleSpacing = elementWidth - skin.elementPadding - titleLabelWidth - handleSize - skin.elementPadding
+
+                if (titleSpacing < 0.0f)
+                    availableTitleLabelWidth = titleLabelWidth + titleSpacing
+
+                group(Game.editorStyle.panelTitleBackgroundColor) {
+                    blankLine(skin.elementPadding)
+                    sameLine {
+                        spacing(skin.elementPadding)
+                        titleLabel()
+
+                        if (titleSpacing > 0.0f)
+                            spacing(titleSpacing)
+
+                        imageButton(Game.textures["internal/images/close_rule_dependency_editor.png"], handleSize) {
+                            openAction(false)
+                        }
+                        spacing(skin.elementPadding)
+                    }
+                    blankLine(skin.elementPadding)
+                }
+
+                val typeIconSize = (elementWidth - skin.elementPadding * 2.0f - skin.elementPadding * 3.0f) / 4.0f
+
+                group(Game.editorStyle.panelContentBackgroundColor) {
+                    blankLine(skin.elementPadding)
+                    sameLine {
+                        spacing(skin.elementPadding)
+                        tooltip(selectableImage(Game.textures["internal/images/rule_dependency_type_null.png"], typeIconSize, isSelected = dependencyType == null) {
+                            action(null)
+                            openAction(false)
+                        }, "Can be empty or any tile")
+                        spacing(skin.elementPadding)
+                        tooltip(selectableImage(Game.textures["internal/images/rule_dependency_type_empty.png"], typeIconSize, isSelected = dependencyType == TileSet.TileType.Dependency.Type.EMPTY) {
+                            action(TileSet.TileType.Dependency.Type.EMPTY)
+                            openAction(false)
+                        }, "Must be empty")
+                        spacing(skin.elementPadding)
+                        tooltip(selectableImage(Game.textures["internal/images/rule_dependency_type_solid.png"], typeIconSize, isSelected = dependencyType == TileSet.TileType.Dependency.Type.SOLID) {
+                            action(TileSet.TileType.Dependency.Type.SOLID)
+                            openAction(false)
+                        }, "Must be any tile")
+                        spacing(skin.elementPadding)
+                        tooltip(selectableImage(Game.textures["internal/images/rule_dependency_type_tile.png"], typeIconSize, isSelected = dependencyType == TileSet.TileType.Dependency.Type.TILE) {
+                            action(TileSet.TileType.Dependency.Type.TILE)
+                            openAction(false)
+                        }, "Must be one of the set tiles")
+                        spacing(skin.elementPadding)
+                    }
+                    blankLine(skin.elementPadding)
+                }
+            }
+        }
+    }
+
+    return element()
+}

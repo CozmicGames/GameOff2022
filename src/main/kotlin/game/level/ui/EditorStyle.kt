@@ -34,6 +34,11 @@ class EditorStyle {
     val materialEditorPopupContentBackgroundColor = popupContentBackgroundColor
     val materialEditorPopupBorderSize = popupBorderSize
 
+    val ruleEditorCellBackgroundColor = Color(0x8E8F87FF.toInt())
+    val ruleEditorCellBorderColor = Color(0x575B5BFF)
+    val ruleEditorCellBorderSize = 5.5f
+
+
 
 
     val layerEditorBorderColor = Color(0x7D7D73FF)

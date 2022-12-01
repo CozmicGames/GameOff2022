@@ -7,19 +7,22 @@ import com.cozmicgames.utils.Color
 import com.cozmicgames.utils.Properties
 import com.cozmicgames.utils.maths.Vector2
 import engine.Game
+import engine.graphics.ui.DragDropData
 import engine.graphics.ui.GUI
 import engine.graphics.ui.GUIElement
 import engine.graphics.ui.GUIPopup
-import engine.graphics.ui.layout.absolute
 import engine.graphics.ui.widgets.*
 import game.assets.types.MaterialAssetType
-import game.extensions.deletable
-import game.extensions.materialPreview
-import game.extensions.plusButton
+import game.extensions.*
 import game.level.TileSet
 import kotlin.math.min
 
 class TileSetEditorPopup : GUIPopup() {
+    private class TileTypeData(val name: String)
+    private inner class TileTypeDragDropData(name: String) : DragDropData<TileTypeData>(TileTypeData(name), {
+        materialPreview(Game.materials[tempTileSet[name]?.getMaterial() ?: "<mising>"] ?: Game.graphics2d.missingMaterial, Game.editorStyle.toolImageSize)
+    })
+
     private val assetSelectorData = AssetSelectorData()
     private val materialEditorData = MaterialEditorData()
 
@@ -29,6 +32,8 @@ class TileSetEditorPopup : GUIPopup() {
     private var currentTileType: String? = null
     private val tileTypeEditorScroll = Vector2()
     private var currentRuleIndex: Int? = null
+    private var openRuleEditorIndex: Int? = null
+    private val ruleEditorScrollAmounts = Array(8) { Vector2() }
 
     private val tempTileSet = TileSet("temp")
     private var tileSetName: String? = null
@@ -127,16 +132,21 @@ class TileSetEditorPopup : GUIPopup() {
 
                     val tileType = tempTileSet[name] ?: continue
 
-                    val isSelected = currentTileType == name
+                    gui.editable({
+                        val previewMaterial = Game.materials[tileType.defaultMaterial] ?: Game.graphics2d.missingMaterial
 
-                    gui.deletable({
-                        val texture = Game.textures[Game.materials[tileType.defaultMaterial]?.colorTexturePath ?: "<missing>"]
-
-                        gui.selectableImage(texture, imageSize, imageSize, isSelected) {
-                            currentTileType = name
+                        gui.draggable({
+                            TileTypeDragDropData((name))
+                        }) {
+                            gui.materialPreview(previewMaterial, imageSize, imageSize)
                         }
                     }, imageSize * 0.25f) {
-                        tempTileSet.remove(name)
+                        currentTileType = name
+                        currentRuleIndex = null
+                        ruleEditorScrollAmounts.forEach {
+                            it.setZero()
+                        }
+                        currentMaterial = tempTileSet[name]?.defaultMaterial
                     }
                 }
 
@@ -152,7 +162,7 @@ class TileSetEditorPopup : GUIPopup() {
 
             val tileType = tempTileSet[requireNotNull(currentTileType)] ?: return
 
-            val x = gui.getElementSize {
+            gui.getElementSize {
                 gui.label("Tile types")
             }.width
 
@@ -160,6 +170,13 @@ class TileSetEditorPopup : GUIPopup() {
             val panelHeight = Kore.graphics.height - gui.skin.elementSize - Kore.graphics.height * Game.editorStyle.assetSelectorHeight
 
             gui.panel(panelWidth, panelHeight, tileTypeEditorScroll, Game.editorStyle.panelContentBackgroundColor, Game.editorStyle.panelTitleBackgroundColor) {
+                gui.textButton("Delete", overrideFontColor = Color.SCARLET) {
+                    currentTileType?.let {
+                        tempTileSet.remove(it)
+                        currentTileType = null
+                    }
+                }
+
                 val imageSize = panelWidth - gui.skin.scrollbarSize - gui.skin.elementPadding * 3.0f
 
                 gui.label("Default", Game.editorStyle.panelTitleBackgroundColor, minWidth = panelWidth)
@@ -203,17 +220,176 @@ class TileSetEditorPopup : GUIPopup() {
             }
         }
 
-        fun drawRuleEditor(width: Float) {
-            //TODO
+        fun drawRuleEditor(x: Float, y: Float, width: Float, height: Float) {
+            if (currentTileType == null)
+                return
+
+            val tileType = tempTileSet[requireNotNull(currentTileType)] ?: return
+            val rule = tileType.rules[currentRuleIndex ?: return]
+            val material = Game.materials[rule.material] ?: return
+
+            val cellSize = min(width, height) * 0.8f / 3.0f
+
+            val centerCellX = x + (width - cellSize * 3.0f) * 0.5f + cellSize
+            val centerCellY = y + (height - cellSize * 3.0f) * 0.5f + cellSize
+
+            fun drawDependency(x: Float, y: Float, dependency: TileSet.TileType.Dependency?, index: Int): TileSet.TileType.Dependency? {
+                gui.setLastElement(gui.absolute(x, y))
+
+                var newType: TileSet.TileType.Dependency.Type? = dependency?.type
+                var typeToAdd: String? = null
+
+                gui.ruleDependencyTypeEditor({
+                    gui.bordered(Game.editorStyle.ruleEditorCellBorderColor, Game.editorStyle.ruleEditorCellBorderSize) {
+                        gui.droppable<TileTypeData>({
+                            newType = TileSet.TileType.Dependency.Type.TILE
+                            typeToAdd = it.name
+                        }, 2.5f) {
+                            gui.group {
+                                gui.colorRectangle(Game.editorStyle.ruleEditorCellBackgroundColor, cellSize)
+
+                                gui.transient(ignoreGroup = true) {
+                                    gui.setLastElement(gui.absolute(x + Game.editorStyle.ruleEditorCellBorderSize, y + Game.editorStyle.ruleEditorCellBorderSize))
+
+                                    when (dependency?.type) {
+                                        TileSet.TileType.Dependency.Type.TILE -> {
+                                            val previewContentSize = cellSize - Game.editorStyle.ruleEditorCellBorderSize * 2.0f
+
+                                            val tileTypeDependency = dependency as TileSet.TileType.TileTypeDependency
+
+                                            if (tileTypeDependency.tileTypes.isNotEmpty()) {
+                                                if (tileTypeDependency.tileTypes.size == 1) {
+                                                    val previewMaterial = Game.materials[tempTileSet[tileTypeDependency.tileTypes.first()]?.getMaterial() ?: "<missing>"] ?: Game.graphics2d.missingMaterial
+                                                    gui.materialPreview(previewMaterial, previewContentSize)
+                                                } else {
+                                                    val previewImagesPerRow = 2
+
+                                                    if (tileTypeDependency.tileTypes.size < previewImagesPerRow * previewImagesPerRow) {
+                                                        val previewImageSize = previewContentSize / previewImagesPerRow
+
+                                                        val previewImages = tileTypeDependency.tileTypes.mapTo(arrayListOf()) {
+                                                            {
+                                                                val previewMaterial = Game.materials[tempTileSet[it]?.getMaterial() ?: "<missing>"] ?: Game.graphics2d.missingMaterial
+                                                                gui.deletable({
+                                                                    gui.materialPreview(previewMaterial, previewImageSize)
+                                                                }, previewImageSize * 0.2f, false) {
+                                                                    tileTypeDependency.tileTypes.remove(it)
+                                                                    if (tileTypeDependency.tileTypes.isEmpty())
+                                                                        newType = null
+                                                                }
+                                                            }
+                                                        }
+
+                                                        gui.multilineList(previewContentSize, 0.0f) {
+                                                            previewImages.removeFirstOrNull()
+                                                        }
+                                                    } else {
+                                                        val previewContentWidth = previewContentSize - gui.skin.scrollbarSize - gui.skin.elementPadding * 4.0f
+                                                        val previewImageSize = previewContentWidth / previewImagesPerRow
+
+                                                        val previewImages = tileTypeDependency.tileTypes.mapTo(arrayListOf()) {
+                                                            {
+                                                                val previewMaterial = Game.materials[tempTileSet[it]?.getMaterial() ?: "<missing>"] ?: Game.graphics2d.missingMaterial
+                                                                gui.deletable({
+                                                                    gui.materialPreview(previewMaterial, previewImageSize)
+                                                                }, previewImageSize * 0.2f, false) {
+                                                                    tileTypeDependency.tileTypes.remove(it)
+                                                                }
+                                                            }
+                                                        }
+
+                                                        gui.scrollArea(maxWidth = previewContentWidth, scroll = ruleEditorScrollAmounts[index]) {
+                                                            gui.multilineList(previewContentSize, 0.0f) {
+                                                                previewImages.removeFirstOrNull()
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                val label = {
+                                                    gui.label("Drag tiles here", maxWidth = cellSize)
+                                                }
+
+                                                val labelSize = gui.getElementSize(label)
+
+                                                gui.setLastElement(gui.absolute(x + (cellSize - labelSize.width) * 0.5f, y + (cellSize - labelSize.height) * 0.5f))
+                                                label()
+                                            }
+                                        }
+                                        else -> {
+                                            val text = when (dependency?.type) {
+                                                TileSet.TileType.Dependency.Type.EMPTY -> "Empty"
+                                                TileSet.TileType.Dependency.Type.SOLID -> "Solid"
+                                                else -> "Anything"
+                                            }
+
+                                            val label = {
+                                                gui.label(text, maxWidth = cellSize)
+                                            }
+
+                                            val labelSize = gui.getElementSize(label)
+
+                                            gui.setLastElement(gui.absolute(x + (cellSize - labelSize.width) * 0.5f, y + (cellSize - labelSize.height) * 0.5f))
+                                            label()
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }, dependency?.type, openRuleEditorIndex == index, {
+                    openRuleEditorIndex = if (it) index else null
+                }) {
+                    newType = it
+                }
+
+                if (dependency?.type == TileSet.TileType.Dependency.Type.TILE)
+                    typeToAdd?.let {
+                        (dependency as TileSet.TileType.TileTypeDependency).tileTypes += it
+                    }
+
+                return if (newType != dependency?.type) {
+                    ruleEditorScrollAmounts[index].setZero()
+
+                    when (newType) {
+                        TileSet.TileType.Dependency.Type.EMPTY -> TileSet.TileType.EmptyDependency
+                        TileSet.TileType.Dependency.Type.SOLID -> TileSet.TileType.SolidDependency
+                        TileSet.TileType.Dependency.Type.TILE -> {
+                            val newDependency = TileSet.TileType.TileTypeDependency()
+                            typeToAdd?.let {
+                                newDependency.tileTypes += it
+                            }
+                            newDependency
+                        }
+                        else -> null
+                    }
+                } else
+                    dependency
+            }
+
+            gui.transient {
+                gui.setLastElement(gui.absolute(centerCellX, centerCellY))
+                gui.selectable({
+                    gui.materialPreview(material, cellSize, cellSize)
+                }, currentMaterial == rule.material) {
+                    currentMaterial = rule.material
+                }
+
+                rule.dependencyTopLeft = drawDependency(centerCellX - cellSize, centerCellY - cellSize, rule.dependencyTopLeft, 0)
+                rule.dependencyTopCenter = drawDependency(centerCellX, centerCellY - cellSize, rule.dependencyTopCenter, 1)
+                rule.dependencyTopRight = drawDependency(centerCellX + cellSize, centerCellY - cellSize, rule.dependencyTopRight, 2)
+                rule.dependencyCenterLeft = drawDependency(centerCellX - cellSize, centerCellY, rule.dependencyCenterLeft, 3)
+                rule.dependencyCenterRight = drawDependency(centerCellX + cellSize, centerCellY, rule.dependencyCenterRight, 4)
+                rule.dependencyBottomLeft = drawDependency(centerCellX - cellSize, centerCellY + cellSize, rule.dependencyBottomLeft, 5)
+                rule.dependencyBottomCenter = drawDependency(centerCellX, centerCellY + cellSize, rule.dependencyBottomCenter, 6)
+                rule.dependencyBottomRight = drawDependency(centerCellX + cellSize, centerCellY + cellSize, rule.dependencyBottomRight, 7)
+            }
         }
 
-        fun drawAssetSelector() {
+        fun drawAssetSelector(width: Float, height: Float) {
             gui.transient {
-                val assetSelectorWidth = Kore.graphics.width.toFloat()
-                val assetSelectorHeight = Kore.graphics.height * Game.editorStyle.assetSelectorHeight
-
-                gui.setLastElement(gui.absolute(0.0f, Kore.graphics.height - assetSelectorHeight))
-                gui.assetSelector(assetSelectorData, assetSelectorWidth, assetSelectorHeight)
+                gui.setLastElement(gui.absolute(0.0f, Kore.graphics.height - height))
+                gui.assetSelector(assetSelectorData, width, height)
             }
         }
 
@@ -232,10 +408,14 @@ class TileSetEditorPopup : GUIPopup() {
                 drawMaterialEditor(it)
             } ?: 0.0f
 
-            val ruleEditorWidth = Kore.graphics.width - leftColumn.width - rightColumnWidth
+            val assetSelectorWidth = Kore.graphics.width.toFloat()
+            val assetSelectorHeight = Kore.graphics.height * Game.editorStyle.assetSelectorHeight
 
-            drawRuleEditor(ruleEditorWidth)
-            drawAssetSelector()
+            val ruleEditorWidth = Kore.graphics.width - leftColumn.width - rightColumnWidth
+            val ruleEditorHeight = Kore.graphics.height - gui.skin.elementSize - assetSelectorHeight
+
+            drawRuleEditor(leftColumn.width, gui.skin.elementSize, ruleEditorWidth, ruleEditorHeight)
+            drawAssetSelector(assetSelectorWidth, assetSelectorHeight)
         }
     }
 }
