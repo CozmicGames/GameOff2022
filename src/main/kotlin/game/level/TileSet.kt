@@ -279,7 +279,7 @@ class TileSet(val name: String) : Disposable {
     }
 
     fun set(tileSet: TileSet) {
-        tileSet.types.forEach { name, type ->
+        tileSet.types.forEach { (name, type) ->
             this[name] = TileType(this).also { dest ->
                 dest.defaultMaterial = type.defaultMaterial
                 dest.width = type.width
@@ -332,7 +332,7 @@ class TileSet(val name: String) : Disposable {
     fun write(properties: Properties) {
         val typesProperties = arrayListOf<Properties>()
 
-        types.forEach { name, tileType ->
+        types.forEach { (name, tileType) ->
             val typeProperties = Properties()
 
             typeProperties.setString("name", name)

@@ -28,10 +28,10 @@ class SpriteComponent : Component(), Updateable, Drawable {
         }
 
     override val vertices = arrayOf(
-        Drawable.Vertex(0.0f - anchorX, 0.0f - anchorY, 0.0f, 0.0f),
-        Drawable.Vertex(1.0f - anchorX, 0.0f - anchorY, 1.0f, 0.0f),
-        Drawable.Vertex(1.0f - anchorX, 1.0f - anchorY, 1.0f, 1.0f),
-        Drawable.Vertex(0.0f - anchorX, 1.0f - anchorY, 0.0f, 1.0f)
+        Drawable.Vertex(0.0f - anchorX, 0.0f - anchorY, 0.0f, 1.0f),
+        Drawable.Vertex(1.0f - anchorX, 0.0f - anchorY, 1.0f, 1.0f),
+        Drawable.Vertex(1.0f - anchorX, 1.0f - anchorY, 1.0f, 0.0f),
+        Drawable.Vertex(0.0f - anchorX, 1.0f - anchorY, 0.0f, 0.0f)
     )
 
     override val indices = arrayOf(0, 1, 2, 0, 2, 3)

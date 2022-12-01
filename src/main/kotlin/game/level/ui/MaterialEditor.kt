@@ -1,10 +1,8 @@
 package game.level.ui
 
-import com.cozmicgames.utils.Color
 import engine.Game
 import engine.graphics.ui.GUI
 import engine.graphics.ui.GUIElement
-import engine.graphics.ui.TextData
 import engine.graphics.ui.widgets.*
 import engine.materials.Material
 import game.assets.types.ShaderAssetType

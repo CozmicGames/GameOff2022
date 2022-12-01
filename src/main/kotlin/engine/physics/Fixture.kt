@@ -1,3 +1,5 @@
+@file:Suppress("UnnecessaryVariable", "UnnecessaryVariable")
+
 package engine.physics
 
 import com.cozmicgames.utils.maths.*
@@ -77,6 +79,7 @@ class CircleFixture(shape: CircleShape, density: Float) : Fixture<CircleShape>(s
     }
 }
 
+@Suppress("UnnecessaryVariable", "UnnecessaryVariable", "UnnecessaryVariable", "UnnecessaryVariable", "UnnecessaryVariable", "UnnecessaryVariable", "UnnecessaryVariable", "UnnecessaryVariable")
 class AxisAlignedRectangleFixture(shape: AxisAlignedRectangleShape, density: Float) : Fixture<AxisAlignedRectangleShape>(shape.copy() as AxisAlignedRectangleShape, density) {
     override fun update() {
         shape.centerX = body.positionX

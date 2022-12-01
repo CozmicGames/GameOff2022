@@ -58,28 +58,28 @@ class GridComponent : Component(), Updateable {
                             x = posX
                             y = posY
                             u = 0.0f
-                            v = 0.0f
+                            v = 1.0f
                         }
 
                         vertex {
                             x = posX + cellSize
                             y = posY
                             u = 1.0f
-                            v = 0.0f
+                            v = 1.0f
                         }
 
                         vertex {
                             x = posX + cellSize
                             y = posY + cellSize
                             u = 1.0f
-                            v = 1.0f
+                            v = 0.0f
                         }
 
                         vertex {
                             x = posX
                             y = posY + cellSize
                             u = 0.0f
-                            v = 1.0f
+                            v = 0.0f
                         }
 
                         index(currentIndex)

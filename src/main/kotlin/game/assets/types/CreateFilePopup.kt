@@ -3,7 +3,6 @@ package game.assets.types
 import com.cozmicgames.Kore
 import com.cozmicgames.files
 import com.cozmicgames.files.nameWithExtension
-import com.cozmicgames.utils.use
 import engine.Game
 import engine.graphics.font.HAlign
 import engine.graphics.ui.GUI

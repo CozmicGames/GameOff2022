@@ -73,7 +73,7 @@ class LevelEditor(val scene: Scene) : Disposable {
         }
     }
 
-    private var areCameraControlsEnabled = false
+    private var isInteractionEnabled = false
         set(value) {
             if (field == value)
                 return
@@ -279,14 +279,14 @@ class LevelEditor(val scene: Scene) : Disposable {
 
         when (currentTool) {
             ToolType.PENCIL -> {
-                if (gui.isInteractionEnabled && Game.tileSets[grid.tileSet]?.contains(currentType) == true) {
+                if (isInteractionEnabled && Game.tileSets[grid.tileSet]?.contains(currentType) == true) {
                     val previewMaterial = Game.materials[Game.tileSets[grid.tileSet]?.let {
                         it[currentType]?.getMaterial(grid, tileX, tileY)
                     } ?: "<missing>"] ?: Game.graphics2d.missingMaterial
 
                     val previewTexture = Game.textures[previewMaterial.colorTexturePath]
                     Game.renderer.submit(grid.layer - 1, previewTexture.texture, previewMaterial.shader, false, false) {
-                        it.drawRect(tileX * grid.cellSize, tileY * grid.cellSize, grid.cellSize, grid.cellSize, Color(1.0f, 1.0f, 1.0f, 0.5f), u0 = previewTexture.u0, v0 = previewTexture.v0, u1 = previewTexture.u1, v1 = previewTexture.v1)
+                        it.drawRect(tileX * grid.cellSize, tileY * grid.cellSize, grid.cellSize, grid.cellSize, Color(1.0f, 1.0f, 1.0f, 0.5f), u0 = previewTexture.u0, v0 = previewTexture.v1, u1 = previewTexture.u1, v1 = previewTexture.v0)
                     }
 
                     if (Kore.input.isButtonDown(MouseButtons.LEFT) && grid.getCellType(tileX, tileY) != currentType)
@@ -297,13 +297,13 @@ class LevelEditor(val scene: Scene) : Disposable {
                 }
             }
             ToolType.DELETE -> {
-                if (gui.isInteractionEnabled) {
+                if (isInteractionEnabled) {
                     if ((Kore.input.isButtonDown(MouseButtons.LEFT) || Kore.input.isButtonDown(MouseButtons.RIGHT)) && grid.getCellType(tileX, tileY) != null)
                         commandExecutor.setTileType(grid, tileX, tileY, null)
                 }
             }
             ToolType.SELECT -> {
-                if (gui.isInteractionEnabled) {
+                if (isInteractionEnabled) {
                     if (Kore.input.isButtonJustDown(MouseButtons.RIGHT))
                         this.selectionRegion = null
 
@@ -325,7 +325,7 @@ class LevelEditor(val scene: Scene) : Disposable {
                 }
             }
             ToolType.PICK -> {
-                if (gui.isInteractionEnabled) {
+                if (isInteractionEnabled) {
                     if (Kore.input.isButtonJustDown(MouseButtons.LEFT)) {
                         val type = grid.getCellType(tileX, tileY)
                         if (type != null)
@@ -570,12 +570,12 @@ class LevelEditor(val scene: Scene) : Disposable {
             Game.tileSets[grid.tileSet]?.let {
                 for (name in it.tileTypeNames) {
                     val tileType = it[name] ?: continue
-
                     val isSelected = currentType == name
+                    val previewMaterial = Game.materials[tileType.defaultMaterial] ?: Game.graphics2d.missingMaterial
 
-                    val texture = Game.textures[Game.materials[tileType.defaultMaterial]?.colorTexturePath ?: "<missing>"]
-
-                    gui.selectableImage(texture, imageSize, imageSize, isSelected) {
+                    gui.selectable({
+                        gui.materialPreview(previewMaterial, imageSize, imageSize)
+                    }, isSelected) {
                         currentType = name
                     }
                 }
@@ -584,7 +584,7 @@ class LevelEditor(val scene: Scene) : Disposable {
     }
 
     fun onFrame(delta: Float): ReturnState {
-        if (gui.isInteractionEnabled) {
+        if (isInteractionEnabled) {
             if (Kore.input.isKeyDown(Keys.KEY_CONTROL) && Kore.input.isKeyJustDown(Keys.KEY_Z))
                 commandExecutor.undo()
 
@@ -601,7 +601,7 @@ class LevelEditor(val scene: Scene) : Disposable {
                 deleteSelection()
         }
 
-        areCameraControlsEnabled = gui.isInteractionEnabled && !gui.isPopupOpen
+        isInteractionEnabled = gui.isInteractionEnabled && !gui.isPopupOpen
 
         scene.update(delta)
 
@@ -623,7 +623,7 @@ class LevelEditor(val scene: Scene) : Disposable {
 
         mainCameraComponent ?: return ReturnState.Menu
 
-        mainCameraComponent.gameObject.getComponent<FreeCameraControllerComponent>()?.isEnabled = gui.isInteractionEnabled
+        mainCameraComponent.gameObject.getComponent<FreeCameraControllerComponent>()?.isEnabled = isInteractionEnabled
 
         val currentGrid = gridObject?.getComponent<GridComponent>()
         val mainCamera = mainCameraComponent.camera

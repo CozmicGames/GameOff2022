@@ -66,7 +66,7 @@ class FontManager : Disposable {
 
     override fun dispose() {
         fonts.forEach { (_, font) ->
-            (font as? Disposable)?.dispose()
+            (font.value as? Disposable)?.dispose()
         }
     }
 

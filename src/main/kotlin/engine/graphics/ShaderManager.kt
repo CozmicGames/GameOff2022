@@ -70,7 +70,7 @@ class ShaderManager : Disposable {
 
     override fun dispose() {
         shaders.forEach { (_, shader) ->
-            (shader as? Disposable)?.dispose()
+            (shader.value as? Disposable)?.dispose()
         }
     }
 

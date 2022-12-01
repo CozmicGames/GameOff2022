@@ -5,7 +5,6 @@ import com.cozmicgames.dialogs
 import com.cozmicgames.files
 import com.cozmicgames.files.FileHandle
 import com.cozmicgames.files.nameWithExtension
-import com.cozmicgames.files.nameWithoutExtension
 import com.cozmicgames.graphics
 import com.cozmicgames.graphics.Image
 import com.cozmicgames.graphics.gpu.Texture
@@ -104,20 +103,20 @@ class TextureAssetType : AssetType<TextureAssetType>, Disposable {
                 }
 
                 if (splitToTiles) {
-                    val linesHorizontal = image.width / tileWidth - 1
-                    val linesVertical = image.height / tileHeight - 1
+                    val linesHorizontal = image.width / tileWidth + 1
+                    val linesVertical = image.height / tileHeight + 1
 
-                    val lineSpacingHorizontal = previewImageWidth / (linesHorizontal + 1)
-                    val lineSpacingVertical = previewImageHeight / (linesVertical + 1)
+                    val lineSpacingHorizontal = previewImageWidth / (linesHorizontal - 1)
+                    val lineSpacingVertical = previewImageHeight / (linesVertical - 1)
 
                     repeat(linesHorizontal) {
-                        val x = previewImageOffset + linesX + (it + 1) * lineSpacingHorizontal
-                        gui.currentCommandList.drawLine(x, linesY, x, linesY + previewImageHeight, 2.5f, gui.skin.fontColor)
+                        val x = previewImageOffset + linesX + it * lineSpacingHorizontal
+                        gui.currentCommandList.drawLine(x, linesY, x, linesY + previewImageHeight, 3.0f, gui.skin.fontColor)
                     }
 
                     repeat(linesVertical) {
-                        val y = linesY + (it + 1) * lineSpacingVertical
-                        gui.currentCommandList.drawLine(previewImageOffset + linesX, y, previewImageOffset + linesX + previewImageWidth, y, 2.5f, gui.skin.fontColor)
+                        val y = linesY + it * lineSpacingVertical
+                        gui.currentCommandList.drawLine(previewImageOffset + linesX, y, previewImageOffset + linesX + previewImageWidth, y, 3.0f, gui.skin.fontColor)
                     }
                 }
             }

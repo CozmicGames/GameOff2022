@@ -93,8 +93,10 @@ fun GUI.materialPreview(material: Material, width: Float = skin.elementSize, hei
     val (x, y) = getLastElement()
 
     currentCommandList.addCommand {
-        withShader(Game.shaders[material.shader] ?: DefaultShader) {
-            draw(Game.textures[material.colorTexturePath], x, y, width, height, material.color)
+        withFlippedY {
+            withShader(Game.shaders[material.shader] ?: DefaultShader) {
+                draw(Game.textures[material.colorTexturePath], x, y, width, height, material.color)
+            }
         }
     }
 

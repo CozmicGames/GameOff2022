@@ -1,11 +1,8 @@
 package game.level.ui
 
-import com.cozmicgames.*
-import com.cozmicgames.utils.maths.Vector2
 import engine.Game
 import engine.graphics.ui.*
 import engine.graphics.ui.widgets.*
-import game.assets.AssetType
 import game.assets.findAssetType
 import game.extensions.multilineListWithSameElementWidths
 

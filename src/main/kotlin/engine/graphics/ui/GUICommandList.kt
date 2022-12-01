@@ -144,7 +144,8 @@ fun GUICommandList.drawPolyline(points: Iterable<Vector2>, thickness: Float, col
 fun GUICommandList.drawImage(x: Float, y: Float, width: Float, height: Float, texture: Texture2D, u0: Float, v0: Float, u1: Float, v1: Float, color: Color) = drawImage(x, y, width, height, TextureRegion(texture, u0, v0, u1, v1), color)
 
 fun GUICommandList.drawImage(x: Float, y: Float, width: Float, height: Float, region: TextureRegion, color: Color) = addCommand {
-    draw(region, x, y, width, height, color)
+    //draw(region, x, y, width, height, color)
+    draw(region.texture, x, y, width, height, color, u0 = region.u0, v0 = region.v1, u1 = region.u1, v1 = region.v0)
 }
 
 fun GUICommandList.drawText(x: Float, y: Float, layout: GlyphLayout, foregroundColor: Color, clipRect: Rectangle? = null) = addCommand {
