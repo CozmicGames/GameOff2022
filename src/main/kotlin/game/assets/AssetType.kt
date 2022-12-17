@@ -13,7 +13,7 @@ interface AssetType<T : AssetType<T>> {
 
     val assetNames: List<String>
 
-    fun preview(gui: GUI, size: Float, name: String, showEditIcon: Boolean)
+    fun preview(gui: GUI, size: Float, name: String, showMenu: Boolean)
 
     fun createDragDropData(name: String): () -> DragDropData<*>
 

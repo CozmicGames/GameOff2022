@@ -5,33 +5,42 @@ import com.cozmicgames.graphics
 import com.cozmicgames.graphics.gpu.ScissorRect
 import com.cozmicgames.graphics.gpu.Texture2D
 import com.cozmicgames.utils.Color
-import com.cozmicgames.utils.maths.Corners
-import com.cozmicgames.utils.maths.Rectangle
-import com.cozmicgames.utils.maths.Vector2
-import com.cozmicgames.utils.maths.VectorPath
+import com.cozmicgames.utils.collections.Resettable
+import com.cozmicgames.utils.maths.*
 import engine.graphics.Renderer
 import engine.graphics.TextureRegion
 import engine.graphics.font.GlyphLayout
 
-class GUICommandList {
-    private val commands = arrayListOf<Renderer.() -> Unit>()
+open class GUICommandList : Resettable {
+    protected open val commands: MutableList<Renderer.() -> Unit>? = arrayListOf()
 
-    val isEmpty get() = commands.isEmpty()
+    val isEmpty get() = commands?.isNotEmpty() == false
 
     fun addCommand(command: Renderer.() -> Unit) {
-        commands += command
+        commands?.add(command)
     }
 
     fun addCommandList(list: GUICommandList) {
-        commands.addAll(list.commands)
+        list.commands?.let {
+            commands?.addAll(it)
+            it.clear()
+        }
     }
 
     fun process(renderer: Renderer) {
-        commands.forEach {
+        commands?.forEach {
             it(renderer)
         }
-        commands.clear()
+        commands?.clear()
     }
+
+    override fun reset() {
+        commands?.clear()
+    }
+}
+
+object GUINoopCommandList : GUICommandList() {
+    override val commands = null
 }
 
 fun GUICommandList.pushScissor(x: Float, y: Float, width: Float, height: Float) = addCommand {
@@ -40,6 +49,14 @@ fun GUICommandList.pushScissor(x: Float, y: Float, width: Float, height: Float) 
 
 fun GUICommandList.popScissor() = addCommand {
     popScissor()
+}
+
+fun GUICommandList.pushMatrix(matrix: Matrix3x2) = addCommand {
+    pushMatrix(matrix)
+}
+
+fun GUICommandList.popMatrix() = addCommand {
+    popMatrix()
 }
 
 fun GUICommandList.drawLine(x0: Float, y0: Float, x1: Float, y1: Float, thickness: Float, color: Color) = addCommand {
@@ -144,7 +161,6 @@ fun GUICommandList.drawPolyline(points: Iterable<Vector2>, thickness: Float, col
 fun GUICommandList.drawImage(x: Float, y: Float, width: Float, height: Float, texture: Texture2D, u0: Float, v0: Float, u1: Float, v1: Float, color: Color) = drawImage(x, y, width, height, TextureRegion(texture, u0, v0, u1, v1), color)
 
 fun GUICommandList.drawImage(x: Float, y: Float, width: Float, height: Float, region: TextureRegion, color: Color) = addCommand {
-    //draw(region, x, y, width, height, color)
     draw(region.texture, x, y, width, height, color, u0 = region.u0, v0 = region.v1, u1 = region.u1, v1 = region.v0)
 }
 

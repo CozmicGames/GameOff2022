@@ -3,10 +3,11 @@ package game.extensions
 import com.cozmicgames.utils.Color
 import com.cozmicgames.utils.maths.Rectangle
 import engine.Game
+import engine.graphics.asRegion
 import engine.graphics.shaders.DefaultShader
 import engine.graphics.ui.*
 import engine.graphics.ui.widgets.*
-import engine.materials.Material
+import engine.graphics.Material
 import game.level.TileSet
 import game.level.ui.editorStyle
 import java.lang.Float.min
@@ -85,8 +86,8 @@ fun GUI.downButton(width: Float = skin.elementSize, height: Float = width, actio
 }
 
 fun GUI.layerVisibleButton(isVisible: Boolean, width: Float = skin.elementSize, height: Float = width, color: Color = Color.WHITE, backgroundColor: Color? = null, action: () -> Unit): GUIElement {
-    val texture = Game.textures[if (isVisible) "internal/images/layer_visible.png" else "internal/images/layer_invisible.png"]
-    return imageButton(texture, width, height, color, backgroundColor, action)
+    val texture = Game.textures[if (isVisible) "internal/images/layer_visible.png" else "internal/images/layer_invisible.png"] ?: Game.graphics2d.missingTexture.asRegion()
+    return imageButton(texture, width, height, color, true, backgroundColor, action)
 }
 
 fun GUI.materialPreview(material: Material, width: Float = skin.elementSize, height: Float = width, borderThickness: Float = skin.strokeThickness): GUIElement {
@@ -95,7 +96,7 @@ fun GUI.materialPreview(material: Material, width: Float = skin.elementSize, hei
     currentCommandList.addCommand {
         withFlippedY {
             withShader(Game.shaders[material.shader] ?: DefaultShader) {
-                draw(Game.textures[material.colorTexturePath], x, y, width, height, material.color)
+                draw(Game.textures[material.colorTexturePath] ?: Game.graphics2d.missingTexture.asRegion(), x, y, width, height, material.color)
             }
         }
     }
@@ -106,30 +107,46 @@ fun GUI.materialPreview(material: Material, width: Float = skin.elementSize, hei
     return setLastElement(x, y, width, height)
 }
 
-fun GUI.editable(element: () -> GUIElement, size: Float, isTopRight: Boolean = true, action: () -> Unit): GUIElement {
-    val elementWidth = getElementSize(element).width
+const val MENUOPTION_DELETE = "internal/images/delete_menuoption.png"
+const val MENUOPTION_EDIT = "internal/images/edit_menuoption.png"
 
-    transient(ignoreGroup = true) {
-        layerUp {
-            offset(if (isTopRight) elementWidth - size * 1.25f else size * 0.25f, size * 0.25f) {
-                imageButton(Game.textures["internal/images/edit_tiletype.png"], size, action = action)
+fun GUI.elementMenu(element: () -> GUIElement, size: Float, options: Array<out String>, padding: Float = size / 3.0f, backgroundColor: Color? = null, anchorX: Float = 1.0f, anchorY: Float = 0.0f, action: (String) -> Unit): GUIElement {
+    val elementSize = getElementSize(element)
+
+    val rectangle = getPooledRectangle()
+    rectangle.x = elementSize.x
+    rectangle.y = elementSize.y
+    rectangle.width = elementSize.width
+    rectangle.height = elementSize.height
+
+    if (GUI.State.HOVERED in getState(rectangle, GUI.TouchBehaviour.NONE))
+        transient(ignoreGroup = true) {
+            layerUp {
+                val menuWidth = options.size * size + padding * (options.size + 1)
+                val menuHeight = size + padding * 2.0f
+
+                val menuX = anchorX * (elementSize.width - menuWidth)
+                val menuY = anchorY * (elementSize.height - menuHeight)
+
+                backgroundColor?.let {
+                    val (x, y) = getLastElement()
+                    currentCommandList.drawRectFilled(x + menuX, y + menuY, menuWidth, menuHeight, skin.roundedCorners, skin.cornerRounding, it)
+                }
+
+                offset(menuX + padding, menuY + padding) {
+                    sameLine {
+                        options.forEachIndexed { index, option ->
+                            imageButton(Game.textures[option] ?: Game.graphics2d.missingTexture.asRegion(), size) {
+                                action(option)
+                            }
+
+                            if (index < options.lastIndex)
+                                spacing(padding)
+                        }
+                    }
+                }
             }
         }
-    }
-
-    return element()
-}
-
-fun GUI.deletable(element: () -> GUIElement, size: Float, isTopRight: Boolean = true, action: () -> Unit): GUIElement {
-    val elementWidth = getElementSize(element).width
-
-    transient(ignoreGroup = true) {
-        layerUp {
-            offset(if (isTopRight) elementWidth - size * 1.25f else size * 0.25f, size * 0.25f) {
-                imageButton(Game.textures["internal/images/delete_tiletype.png"], size, color = Color.SCARLET, action = action)
-            }
-        }
-    }
 
     return element()
 }
@@ -180,7 +197,7 @@ fun GUI.multilineList(maxWidth: Float, spacing: Float, backgroundColor: Color? =
 
 fun GUI.multilineListWithSameElementWidths(maxWidth: Float, elementWidth: Float, minSpacing: Float? = null, backgroundColor: Color? = null, nextElement: () -> (() -> GUIElement)?) = group(backgroundColor) {
     val elementsPerLine = maxWidth.toInt() / (elementWidth + (minSpacing ?: 0.0f)).toInt() - 1
-    val elementSpacing = (maxWidth - (elementsPerLine + 1) * elementWidth) / elementsPerLine
+    val elementSpacing = (maxWidth - (elementsPerLine + 1) * elementWidth) / (elementsPerLine + 1)
 
     var hasMoreElements = true
 
@@ -208,11 +225,13 @@ fun GUI.multilineListWithSameElementWidths(maxWidth: Float, elementWidth: Float,
     }
 }
 
-fun GUI.importButton(width: Float, height: Float = width, action: () -> Unit) = imageButton(Game.textures["internal/images/import_button.png"], width, height, action = action)
+fun GUI.importButton(width: Float, height: Float = width, action: () -> Unit) = imageButton(Game.textures["internal/images/import_button.png"] ?: Game.graphics2d.missingTexture.asRegion(), width, height, action = action)
 
-fun GUI.plusButton(width: Float, height: Float = width, action: () -> Unit) = imageButton(Game.textures["internal/images/plus_button.png"], width, height, action = action)
+fun GUI.plusButton(width: Float, height: Float = width, action: () -> Unit) = imageButton(Game.textures["internal/images/plus_button.png"] ?: Game.graphics2d.missingTexture.asRegion(), width, height, action = action)
 
-fun GUI.minusButton(width: Float, height: Float = width, action: () -> Unit) = imageButton(Game.textures["internal/images/minus_button.png"], width, height, action = action)
+fun GUI.minusButton(width: Float, height: Float = width, action: () -> Unit) = imageButton(Game.textures["internal/images/minus_button.png"] ?: Game.graphics2d.missingTexture.asRegion(), width, height, action = action)
+
+fun GUI.ninesliceButton(width: Float, height: Float = width, action: () -> Unit) = imageButton(Game.textures["internal/images/nineslice_button.png"] ?: Game.graphics2d.missingTexture.asRegion(), width, height, action = action)
 
 fun GUI.ruleDependencyTypeEditor(element: () -> GUIElement, dependencyType: TileSet.TileType.Dependency.Type?, isOpen: Boolean, openAction: (Boolean) -> Unit, action: (TileSet.TileType.Dependency.Type?) -> Unit): GUIElement {
     val elementWidth = getElementSize(element).width
@@ -223,7 +242,7 @@ fun GUI.ruleDependencyTypeEditor(element: () -> GUIElement, dependencyType: Tile
 
             if (!isOpen)
                 offset(elementWidth - handleSize - skin.elementPadding, skin.elementPadding) {
-                    imageButton(Game.textures["internal/images/open_rule_dependency_editor.png"], handleSize) {
+                    imageButton(Game.textures["internal/images/open_rule_dependency_editor.png"] ?: Game.graphics2d.missingTexture.asRegion(), handleSize) {
                         openAction(true)
                     }
                 }
@@ -249,7 +268,7 @@ fun GUI.ruleDependencyTypeEditor(element: () -> GUIElement, dependencyType: Tile
                         if (titleSpacing > 0.0f)
                             spacing(titleSpacing)
 
-                        imageButton(Game.textures["internal/images/close_rule_dependency_editor.png"], handleSize) {
+                        imageButton(Game.textures["internal/images/close_rule_dependency_editor.png"] ?: Game.graphics2d.missingTexture.asRegion(), handleSize) {
                             openAction(false)
                         }
                         spacing(skin.elementPadding)
@@ -257,31 +276,36 @@ fun GUI.ruleDependencyTypeEditor(element: () -> GUIElement, dependencyType: Tile
                     blankLine(skin.elementPadding)
                 }
 
-                val typeIconSize = (elementWidth - skin.elementPadding * 2.0f - skin.elementPadding * 3.0f) / 4.0f
+                val typeIconSize = (elementWidth - skin.elementPadding * 2.0f - skin.elementPadding * 4.0f) / 5.0f
 
                 group(Game.editorStyle.panelContentBackgroundColor) {
                     blankLine(skin.elementPadding)
                     sameLine {
                         spacing(skin.elementPadding)
-                        tooltip(selectableImage(Game.textures["internal/images/rule_dependency_type_null.png"], typeIconSize, isSelected = dependencyType == null) {
+                        tooltip(selectableImage(Game.textures["internal/images/rule_dependency_type_null.png"] ?: Game.graphics2d.missingTexture.asRegion(), typeIconSize, isSelected = dependencyType == null) {
                             action(null)
                             openAction(false)
                         }, "Can be empty or any tile")
                         spacing(skin.elementPadding)
-                        tooltip(selectableImage(Game.textures["internal/images/rule_dependency_type_empty.png"], typeIconSize, isSelected = dependencyType == TileSet.TileType.Dependency.Type.EMPTY) {
+                        tooltip(selectableImage(Game.textures["internal/images/rule_dependency_type_empty.png"] ?: Game.graphics2d.missingTexture.asRegion(), typeIconSize, isSelected = dependencyType == TileSet.TileType.Dependency.Type.EMPTY) {
                             action(TileSet.TileType.Dependency.Type.EMPTY)
                             openAction(false)
                         }, "Must be empty")
                         spacing(skin.elementPadding)
-                        tooltip(selectableImage(Game.textures["internal/images/rule_dependency_type_solid.png"], typeIconSize, isSelected = dependencyType == TileSet.TileType.Dependency.Type.SOLID) {
+                        tooltip(selectableImage(Game.textures["internal/images/rule_dependency_type_solid.png"] ?: Game.graphics2d.missingTexture.asRegion(), typeIconSize, isSelected = dependencyType == TileSet.TileType.Dependency.Type.SOLID) {
                             action(TileSet.TileType.Dependency.Type.SOLID)
                             openAction(false)
                         }, "Must be any tile")
                         spacing(skin.elementPadding)
-                        tooltip(selectableImage(Game.textures["internal/images/rule_dependency_type_tile.png"], typeIconSize, isSelected = dependencyType == TileSet.TileType.Dependency.Type.TILE) {
+                        tooltip(selectableImage(Game.textures["internal/images/rule_dependency_type_tile.png"] ?: Game.graphics2d.missingTexture.asRegion(), typeIconSize, isSelected = dependencyType == TileSet.TileType.Dependency.Type.TILE) {
                             action(TileSet.TileType.Dependency.Type.TILE)
                             openAction(false)
                         }, "Must be one of the set tiles")
+                        spacing(skin.elementPadding)
+                        tooltip(selectableImage(Game.textures["internal/images/rule_dependency_type_tile_exclusive.png"] ?: Game.graphics2d.missingTexture.asRegion(), typeIconSize, isSelected = dependencyType == TileSet.TileType.Dependency.Type.TILE_EXCLUSIVE) {
+                            action(TileSet.TileType.Dependency.Type.TILE_EXCLUSIVE)
+                            openAction(false)
+                        }, "Must be any but one of the set tiles")
                         spacing(skin.elementPadding)
                     }
                     blankLine(skin.elementPadding)

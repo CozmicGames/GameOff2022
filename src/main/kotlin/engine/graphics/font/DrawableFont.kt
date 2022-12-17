@@ -1,5 +1,6 @@
 package engine.graphics.font
 
+import com.cozmicgames.graphics.gpu.Pipeline
 import com.cozmicgames.graphics.gpu.Texture2D
 import com.cozmicgames.utils.Disposable
 
@@ -15,4 +16,6 @@ interface DrawableFont : Disposable {
     val texture: Texture2D
 
     operator fun get(char: Char): Glyph
+
+    fun setUniforms(pipeline: Pipeline) {}
 }

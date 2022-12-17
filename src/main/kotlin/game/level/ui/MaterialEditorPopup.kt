@@ -7,7 +7,7 @@ import engine.graphics.ui.GUI
 import engine.graphics.ui.GUIElement
 import engine.graphics.ui.GUIPopup
 import engine.graphics.ui.widgets.*
-import engine.materials.Material
+import engine.graphics.Material
 
 class MaterialEditorPopup : GUIPopup() {
     private lateinit var materialName: String

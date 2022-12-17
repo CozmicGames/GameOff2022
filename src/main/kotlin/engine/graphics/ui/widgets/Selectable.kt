@@ -1,6 +1,5 @@
 package engine.graphics.ui.widgets
 
-import com.cozmicgames.utils.maths.Rectangle
 import engine.graphics.ui.GUI
 import engine.graphics.ui.GUIElement
 import engine.graphics.ui.drawRect
@@ -15,7 +14,7 @@ import engine.graphics.ui.drawRect
 fun GUI.selectable(block: () -> GUIElement, isSelected: Boolean, action: () -> Unit): GUIElement {
     val element = block()
 
-    val rectangle = Rectangle()
+    val rectangle = getPooledRectangle()
     rectangle.x = element.x
     rectangle.y = element.y
     rectangle.width = element.width

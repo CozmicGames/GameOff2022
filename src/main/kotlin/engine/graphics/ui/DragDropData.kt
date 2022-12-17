@@ -10,9 +10,11 @@ open class DragDropData<T : Any>(val payload: T, val onDrawPayload: GUI.() -> Un
             return
 
         gui.topLayer {
-            gui.transient(true, false) {
-                gui.setLastElement(gui.absolute(gui.touchPosition))
-                onDrawPayload(gui)
+            gui.layerUp {
+                gui.transient(true, false) {
+                    gui.setLastElement(gui.absolute(gui.touchPosition))
+                    onDrawPayload(gui)
+                }
             }
         }
 

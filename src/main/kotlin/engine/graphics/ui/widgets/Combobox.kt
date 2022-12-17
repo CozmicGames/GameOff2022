@@ -1,13 +1,11 @@
 package engine.graphics.ui.widgets
 
 import com.cozmicgames.utils.maths.Corners
-import com.cozmicgames.utils.maths.Rectangle
-import engine.graphics.font.GlyphLayout
 import engine.graphics.ui.*
 import kotlin.math.max
 
 fun GUI.combobox(data: ComboboxData<*>, maxDropOutHeight: Float? = null): GUIElement {
-    val layout = GlyphLayout()
+    val layout = getPooledGlyphLayout()
     var maxItemWidth = 0.0f
     var itemsHeight = 0.0f
 
@@ -57,9 +55,10 @@ fun GUI.combobox(data: ComboboxData<*>, maxDropOutHeight: Float? = null): GUIEle
 private fun GUI.comboboxElement(data: ComboboxData<*>, index: Int, itemWidth: Float) {
     val (x, y) = getLastElement()
 
-    val itemLayout = GlyphLayout(data[index].toString(), drawableFont)
+    val itemLayout = getPooledGlyphLayout()
+    itemLayout.update(data[index].toString(), drawableFont)
 
-    val rectangle = Rectangle()
+    val rectangle = getPooledRectangle()
 
     rectangle.x = x
     rectangle.y = y

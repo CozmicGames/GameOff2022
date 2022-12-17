@@ -1,5 +1,6 @@
 package engine.utils
 
+import com.cozmicgames.graphics.Image
 import com.cozmicgames.utils.Color
 import com.cozmicgames.utils.extensions.clamp
 import kotlin.math.floor
@@ -91,5 +92,12 @@ class Gradient(val color0: Color, val color1: Color, vararg colors: GradientColo
                 a = colorBefore.color.a * amountColorBefore + colorAfter.color.a * amountColorAfter
             }
         }
+    }
+}
+
+fun Gradient.toImage(image: Image = Image(cacheSize, 1)) {
+    repeat(image.width) {
+        val color = get(it.toFloat() / (image.width - 1))
+        image[it, 0] = color
     }
 }

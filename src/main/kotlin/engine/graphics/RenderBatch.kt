@@ -2,7 +2,6 @@ package engine.graphics
 
 import com.cozmicgames.utils.Disposable
 import com.cozmicgames.utils.collections.Resettable
-import engine.materials.Material
 
 class RenderBatch : Resettable, Disposable {
     var material: Material? = null

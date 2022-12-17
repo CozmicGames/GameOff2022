@@ -6,7 +6,7 @@ import com.cozmicgames.utils.UUID
 import com.cozmicgames.utils.extensions.enumValueOfOrNull
 import com.cozmicgames.utils.extensions.pathWithoutExtension
 import engine.Game
-import engine.materials.Material
+import engine.graphics.Material
 import game.components.GridComponent
 import game.components.getCellType
 
@@ -26,7 +26,8 @@ class TileSet(val name: String) : Disposable {
             enum class Type {
                 SOLID,
                 EMPTY,
-                TILE
+                TILE,
+                TILE_EXCLUSIVE
             }
         }
 
@@ -34,8 +35,12 @@ class TileSet(val name: String) : Disposable {
 
         object EmptyDependency : Dependency(Type.EMPTY)
 
-        class TileTypeDependency : Dependency(Type.TILE) {
-            var tileTypes = hashSetOf<String>()
+        class TileTypeDependency(vararg types: String) : Dependency(Type.TILE) {
+            var tileTypes = hashSetOf(*types)
+        }
+
+        class ExclusiveTileTypeDependency(vararg types: String) : Dependency(Type.TILE_EXCLUSIVE) {
+            var tileTypes = hashSetOf(*types)
         }
 
         inner class Rule : Disposable {
@@ -78,6 +83,11 @@ class TileSet(val name: String) : Disposable {
                                 properties.getStringArray("tileTypes")?.let { dependency.tileTypes.addAll(it) }
                             }
                         }
+                        Dependency.Type.TILE_EXCLUSIVE -> {
+                            ExclusiveTileTypeDependency().also { dependency ->
+                                properties.getStringArray("tileTypes")?.let { dependency.tileTypes.addAll(it) }
+                            }
+                        }
                     }
                 }
 
@@ -101,7 +111,9 @@ class TileSet(val name: String) : Disposable {
                     dependency?.let {
                         dependencyProperties.setString("type", it.type.name)
                         if (it is TileTypeDependency)
-                            properties.setStringArray("tileTypes", it.tileTypes.toTypedArray())
+                            dependencyProperties.setStringArray("tileTypes", it.tileTypes.toTypedArray())
+                        if (it is ExclusiveTileTypeDependency)
+                            dependencyProperties.setStringArray("tileTypes", it.tileTypes.toTypedArray())
                     }
                     return dependencyProperties
                 }
@@ -157,6 +169,7 @@ class TileSet(val name: String) : Disposable {
                     Dependency.Type.EMPTY -> tileType == null
                     Dependency.Type.SOLID -> tileType != null
                     Dependency.Type.TILE -> tileType in (dependency as TileTypeDependency).tileTypes
+                    Dependency.Type.TILE_EXCLUSIVE -> tileType == null || tileType !in (dependency as ExclusiveTileTypeDependency).tileTypes
                 }
             }
 
@@ -297,6 +310,9 @@ class TileSet(val name: String) : Disposable {
                         TileType.Dependency.Type.SOLID -> TileType.EmptyDependency
                         TileType.Dependency.Type.TILE -> TileType.TileTypeDependency().also {
                             it.tileTypes.addAll((src as TileType.TileTypeDependency).tileTypes)
+                        }
+                        TileType.Dependency.Type.TILE_EXCLUSIVE -> TileType.ExclusiveTileTypeDependency().also {
+                            it.tileTypes.addAll((src as TileType.ExclusiveTileTypeDependency).tileTypes)
                         }
                         else -> null
                     }

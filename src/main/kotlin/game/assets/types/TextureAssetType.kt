@@ -21,14 +21,17 @@ import engine.graphics.ui.*
 import engine.graphics.ui.widgets.*
 import game.assets.AssetType
 import game.assets.TextureMetaFile
-import game.extensions.downButton
-import game.extensions.importButton
-import game.extensions.upButton
+import game.extensions.*
 import game.level.ui.editorStyle
 import kotlin.math.max
 import kotlin.math.min
 
 class TextureAssetType : AssetType<TextureAssetType>, Disposable {
+    private enum class ImportMode {
+        SINGLE,
+        SPLIT
+    }
+
     inner class ImageImportPopup : ImportPopup(this, "Import texture"), Disposable {
         lateinit var file: String
 
@@ -36,7 +39,7 @@ class TextureAssetType : AssetType<TextureAssetType>, Disposable {
         private var previewTexture: Texture2D? = null
 
         private val filterComboboxData = ComboboxData(*Texture.Filter.values())
-        private var splitToTiles = false
+        private val importModeComboboxData = ComboboxData(*ImportMode.values())
         private var excludeEmptyImages = true
 
         private val tileWidthTextData = TextData {
@@ -67,6 +70,11 @@ class TextureAssetType : AssetType<TextureAssetType>, Disposable {
             get() = tileHeightTextData.text.toIntOrNull() ?: 1
             set(value) = tileHeightTextData.setText(max(1, value).toString())
 
+        private var leftSlice = 1.0f / 3.0f
+        private var rightSlice = 1.0f / 3.0f
+        private var topSlice = 1.0f / 3.0f
+        private var bottomSlice = 1.0f / 3.0f
+
         override fun reset(file: String) {
             this.file = file
             nameTextData.setText(file.nameWithoutExtension)
@@ -76,10 +84,14 @@ class TextureAssetType : AssetType<TextureAssetType>, Disposable {
             previewTexture = image.toTexture2D(Game.graphics2d.pointClampSampler)
 
             filterComboboxData.selectedIndex = 0
-            splitToTiles = false
+            importModeComboboxData.selectedIndex = 0
             excludeEmptyImages = true
             tileWidth = 1
             tileHeight = 1
+            leftSlice = 1.0f / 3.0f
+            rightSlice = 1.0f / 3.0f
+            topSlice = 1.0f / 3.0f
+            bottomSlice = 1.0f / 3.0f
         }
 
         override fun drawContent(gui: GUI, width: Float, height: Float) {
@@ -102,7 +114,7 @@ class TextureAssetType : AssetType<TextureAssetType>, Disposable {
                     gui.image(it.asRegion(), previewImageWidth, previewImageHeight, borderThickness = 0.0f)
                 }
 
-                if (splitToTiles) {
+                if (importModeComboboxData.selectedItem == ImportMode.SPLIT) {
                     val linesHorizontal = image.width / tileWidth + 1
                     val linesVertical = image.height / tileHeight + 1
 
@@ -121,7 +133,7 @@ class TextureAssetType : AssetType<TextureAssetType>, Disposable {
                 }
             }
 
-            if (splitToTiles) {
+            if (importModeComboboxData.selectedItem == ImportMode.SPLIT) {
                 val columns = image.width / max(tileWidth, 1)
                 val rows = image.height / max(tileHeight, 1)
 
@@ -130,38 +142,42 @@ class TextureAssetType : AssetType<TextureAssetType>, Disposable {
 
             gui.sameLine {
                 val labelsWidth = gui.group {
+                    gui.label("Import mode", null)
                     gui.label("Filter", null)
-                    gui.label("Split to tiles", null)
-                    gui.label("Exclude empty images", null)
-                    gui.label("Tile width", null)
-                    gui.label("Tile height", null)
+                    if (importModeComboboxData.selectedItem == ImportMode.SPLIT) {
+                        gui.label("Exclude empty images", null)
+                        gui.label("Tile width", null)
+                        gui.label("Tile height", null)
+                    }
                     gui.label("Original filename", null)
                     gui.label("Import filename", null)
                 }.width
 
                 gui.group {
+                    gui.combobox(importModeComboboxData)
                     gui.combobox(filterComboboxData)
-                    gui.checkBox(splitToTiles) { splitToTiles = it }
-                    gui.checkBox(excludeEmptyImages) { excludeEmptyImages = it }
-                    gui.sameLine {
-                        gui.textField(tileWidthTextData)
-                        gui.group {
-                            gui.upButton(gui.skin.elementSize * 0.5f) {
-                                tileWidth++
-                            }
-                            gui.downButton(gui.skin.elementSize * 0.5f) {
-                                tileWidth--
+                    if (importModeComboboxData.selectedItem == ImportMode.SPLIT) {
+                        gui.checkBox(excludeEmptyImages) { excludeEmptyImages = it }
+                        gui.sameLine {
+                            gui.textField(tileWidthTextData)
+                            gui.group {
+                                gui.upButton(gui.skin.elementSize * 0.5f) {
+                                    tileWidth++
+                                }
+                                gui.downButton(gui.skin.elementSize * 0.5f) {
+                                    tileWidth--
+                                }
                             }
                         }
-                    }
-                    gui.sameLine {
-                        gui.textField(tileHeightTextData)
-                        gui.group {
-                            gui.upButton(gui.skin.elementSize * 0.5f) {
-                                tileHeight++
-                            }
-                            gui.downButton(gui.skin.elementSize * 0.5f) {
-                                tileHeight--
+                        gui.sameLine {
+                            gui.textField(tileHeightTextData)
+                            gui.group {
+                                gui.upButton(gui.skin.elementSize * 0.5f) {
+                                    tileHeight++
+                                }
+                                gui.downButton(gui.skin.elementSize * 0.5f) {
+                                    tileHeight--
+                                }
                             }
                         }
                     }
@@ -173,51 +189,55 @@ class TextureAssetType : AssetType<TextureAssetType>, Disposable {
 
         override fun onImport() {
             val selectedFilter = filterComboboxData.selectedItem ?: Texture.Filter.NEAREST
+            val selectedMode = importModeComboboxData.selectedItem
 
-            if (splitToTiles) {
-                val columns = image.width / max(tileWidth, 1)
-                val rows = image.height / max(tileHeight, 1)
-                val images = image.split(columns, rows)
+            when (selectedMode) {
+                ImportMode.SPLIT -> {
+                    val columns = image.width / max(tileWidth, 1)
+                    val rows = image.height / max(tileHeight, 1)
+                    val images = image.split(columns, rows)
 
-                repeat(images.width) { x ->
-                    repeat(images.height) { y ->
-                        images[x, y]?.let {
-                            if (!(excludeEmptyImages && it.pixels.data.all { it.data.all { it == 0.0f } })) {
-                                val imageFileName = "${nameTextData.text}_${x}_${y}.${file.extension}"
-                                val assetFile = Game.assets.getAssetFileHandle(imageFileName)
+                    repeat(images.width) { x ->
+                        repeat(images.height) { y ->
+                            images[x, y]?.let {
+                                if (!(excludeEmptyImages && it.pixels.data.all { it.data.all { it == 0.0f } })) {
+                                    val imageFileName = "${nameTextData.text}_${x}_${y}.${file.extension}"
+                                    val assetFile = Game.assets.getAssetFileHandle(imageFileName)
 
-                                if (assetFile.exists)
-                                    assetFile.delete()
+                                    if (assetFile.exists)
+                                        assetFile.delete()
 
-                                Kore.graphics.writeImage(assetFile, it)
+                                    Kore.graphics.writeImage(assetFile, it)
 
-                                val metaFile = TextureMetaFile()
-                                metaFile.name = imageFileName
-                                metaFile.filter = selectedFilter
-                                metaFile.write(assetFile.sibling("${assetFile.nameWithExtension}.meta"))
+                                    val metaFile = TextureMetaFile()
+                                    metaFile.name = imageFileName
+                                    metaFile.filter = selectedFilter
+                                    metaFile.write(assetFile.sibling("${assetFile.nameWithExtension}.meta"))
 
-                                Game.textures.add(imageFileName, it, selectedFilter)
+                                    Game.textures.add(imageFileName, it, selectedFilter)
+                                }
                             }
                         }
                     }
                 }
-            } else {
-                val imageFileName = "${nameTextData.text}.${file.extension}"
-                val assetFile = Game.assets.getAssetFileHandle(imageFileName)
+                else -> {
+                    val imageFileName = "${nameTextData.text}.${file.extension}"
+                    val assetFile = Game.assets.getAssetFileHandle(imageFileName)
 
-                if (file != nameTextData.text) {
-                    if (assetFile.exists)
-                        assetFile.delete()
+                    if (file != nameTextData.text) {
+                        if (assetFile.exists)
+                            assetFile.delete()
 
-                    Game.assets.importFile(Kore.files.absolute(file), assetFile)
+                        Kore.files.absolute(file).copyTo(assetFile)
+                    }
+
+                    val metaFile = TextureMetaFile()
+                    metaFile.name = imageFileName
+                    metaFile.filter = selectedFilter
+                    metaFile.write(assetFile.sibling("${assetFile.nameWithExtension}.meta"))
+
+                    Game.textures.add(assetFile, imageFileName, params = selectedFilter)
                 }
-
-                val metaFile = TextureMetaFile()
-                metaFile.name = imageFileName
-                metaFile.filter = selectedFilter
-                metaFile.write(assetFile.sibling("${assetFile.nameWithExtension}.meta"))
-
-                Game.textures.add(assetFile, filter = selectedFilter)
             }
         }
 
@@ -238,11 +258,19 @@ class TextureAssetType : AssetType<TextureAssetType>, Disposable {
 
     private val imageImportPopup = ImageImportPopup()
 
-    override fun preview(gui: GUI, size: Float, name: String, showEditIcon: Boolean) {
-        gui.image(Game.textures[name], size)
+    override fun preview(gui: GUI, size: Float, name: String, showMenu: Boolean) {
+        if (showMenu)
+            gui.elementMenu({
+                gui.image(Game.textures[name] ?: Game.graphics2d.missingTexture.asRegion(), size)
+            }, gui.skin.elementSize * 0.66f, arrayOf(MENUOPTION_DELETE), backgroundColor = Color.DARK_GRAY) {
+                if (it == MENUOPTION_DELETE)
+                    Game.textures.remove(name)
+            }
+        else
+            gui.image(Game.textures[name] ?: Game.graphics2d.missingTexture.asRegion(), size)
     }
 
-    override fun createDragDropData(name: String) = { DragDropData(TextureAsset(name)) { image(Game.textures[name], Game.editorStyle.assetElementWidth) } }
+    override fun createDragDropData(name: String) = { DragDropData(TextureAsset(name)) { image(Game.textures[name] ?: Game.graphics2d.missingTexture.asRegion(), Game.editorStyle.assetElementWidth) } }
 
     override fun appendToAssetList(gui: GUI, list: MutableList<() -> GUIElement>) {
         list += {

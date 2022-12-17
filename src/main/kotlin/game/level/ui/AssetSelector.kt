@@ -1,6 +1,7 @@
 package game.level.ui
 
 import engine.Game
+import engine.graphics.asRegion
 import engine.graphics.ui.*
 import engine.graphics.ui.widgets.*
 import game.assets.findAssetType
@@ -29,7 +30,7 @@ fun GUI.assetSelector(data: AssetSelectorData, width: Float, height: Float): GUI
 
         val filterText = {
             sameLine {
-                image(Game.textures["internal/images/search.png"], borderThickness = 0.0f)
+                image(Game.textures["internal/images/search.png"] ?: Game.graphics2d.missingTexture.asRegion(), borderThickness = 0.0f)
                 textField(data.filterTextData, skin.elementSize * 6.0f)
             }
         }
@@ -40,7 +41,7 @@ fun GUI.assetSelector(data: AssetSelectorData, width: Float, height: Float): GUI
         scrollArea(maxWidth = width, scroll = data.assetTitleScroll) {
             sameLine {
                 assetTypeSelector()
-                val spacingAmount = width - assetTypeSelectorWidth - filterTextWidth - skin.elementPadding * 2.0f
+                val spacingAmount = width - assetTypeSelectorWidth - filterTextWidth
                 if (spacingAmount > 0.0f)
                     spacing(spacingAmount)
                 filterText()
@@ -74,7 +75,7 @@ fun GUI.assetSelector(data: AssetSelectorData, width: Float, height: Float): GUI
 
                 assetType.appendToAssetList(this, elements)
 
-                multilineListWithSameElementWidths(width - skin.scrollbarSize - skin.elementPadding * 3.0f, Game.editorStyle.assetElementWidth, Game.editorStyle.assetElementMinPadding) {
+                multilineListWithSameElementWidths(width - skin.scrollbarSize, Game.editorStyle.assetElementWidth, Game.editorStyle.assetElementMinPadding) {
                     elements.removeFirstOrNull()
                 }
             }

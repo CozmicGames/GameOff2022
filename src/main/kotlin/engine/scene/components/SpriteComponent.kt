@@ -3,11 +3,11 @@ package engine.scene.components
 import com.cozmicgames.utils.Properties
 import com.cozmicgames.utils.Updateable
 import engine.graphics.Drawable
-import engine.graphics.DrawableBounds
+import engine.graphics.Bounds
 import engine.scene.Component
 
 class SpriteComponent : Component(), Updateable, Drawable {
-    val bounds = DrawableBounds()
+    val bounds = Bounds()
 
     var isFlippedX = false
     var isFlippedY = false

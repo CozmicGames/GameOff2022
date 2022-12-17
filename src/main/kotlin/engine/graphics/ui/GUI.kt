@@ -7,13 +7,14 @@ import com.cozmicgames.input.*
 import com.cozmicgames.utils.Color
 import com.cozmicgames.utils.Disposable
 import com.cozmicgames.utils.Time
-import com.cozmicgames.utils.maths.Matrix4x4
-import com.cozmicgames.utils.maths.Rectangle
-import com.cozmicgames.utils.maths.Vector2
-import com.cozmicgames.utils.maths.intersectRectRect
+import com.cozmicgames.utils.collections.ReclaimingPool
+import com.cozmicgames.utils.maths.*
 import engine.Game
-import engine.graphics.font.BitmapFont
+import engine.graphics.MatrixStack
+import engine.graphics.font.GlyphLayout
+import engine.graphics.font.SDFFont
 import engine.graphics.shaders.DefaultShader
+import engine.input.GestureListener
 import kotlin.math.max
 import kotlin.math.min
 
@@ -24,7 +25,8 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
         ENTERED,
         LEFT,
         HOVERED_DROPPABLE,
-        ACTIVE_DROPPABLE;
+        ACTIVE_DROPPABLE,
+        DOUBLE_TAP;
 
         companion object {
             /**
@@ -45,6 +47,7 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
                      * LEFT: The element has been left.
                      * HOVERED_DROPPABLE: The mouse is hovering over the element and either [currentDragDropData] is not null or external dropped elements are present.
                      * ACTIVE_WITH_DRAGDROPDATA: The element is being interacted with and either [currentDragDropData] is not null or external dropped elements are present.
+                     * DOUBLE_TAP: The element is being interacted with and it is double-tapped.
                      *
                      * States can be combined to a bitfield using the combine function.
                      * The resulting bitfield can be used to check if a state is active by the isSet function.
@@ -116,6 +119,7 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
     private var addToLayer = true
     private var lastUpdatedFrame = -1
     private var droppedTimeCounter = 0.0f
+    private var isJustDoubleTapped = false
 
     private val inputListener = object : InputListener {
         override fun onKey(key: Key, down: Boolean, time: Double) {
@@ -133,18 +137,33 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
         }
     }
 
+    private val gestureListener = object : GestureListener {
+        override fun onTap(x: Float, y: Float, count: Int) {
+            if (count == 2)
+                isJustDoubleTapped = true
+        }
+    }
+
     private val dropListener: DropListener = {
         externalDroppedElements += it
         externalDropLocation.set(touchPosition)
     }
 
+    private val matrixStack = MatrixStack()
+    private val boundsPath = VectorPath()
+    private val rectanglePool = ReclaimingPool(supplier = { Rectangle() }, reset = { it.infinite() })
+    private val glyphLayoutPool = ReclaimingPool(supplier = { GlyphLayout() })
+    private val commandListPool = ReclaimingPool(supplier = { GUICommandList() })
+    private val elementPool = ReclaimingPool(supplier = { GUIElement() })
     private val popupStack = arrayListOf<GUIPopup>()
     private val layers = arrayListOf<GUILayer>()
     private var currentLayerIndex = 0
+    private var isMeasuringElementSize = false
     private var isInteractionDisabledFromPopup = false
+    private var internalCurrentCommandList = commandList
 
     /**
-     * If set to false, globally disables interaction by always returning an emtpy bitfield on [getState].
+     * If set to false, globally disables interaction by always returning an empty bitfield on [getState].
      */
     var isInteractionEnabled = true
 
@@ -162,8 +181,8 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
     /**
      * The current command list.
      */
-    var currentCommandList = commandList
-        private set
+    val currentCommandList
+        get() = if (isMeasuringElementSize) GUINoopCommandList else internalCurrentCommandList
 
     /**
      * The current group, if one is present.
@@ -222,7 +241,7 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
     /**
      * The font used for text rendering.
      */
-    val drawableFont = BitmapFont(skin.font, size = skin.contentSize)
+    val drawableFont = SDFFont(skin.font, size = skin.contentSize)
 
     /**
      * Whether a tooltip should be shown, based on the time the pointer stands still.
@@ -244,8 +263,23 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
         Kore.addDropListener(dropListener)
 
         layers.add(GUILayer())
-        currentCommandList = currentLayer.commands
+        internalCurrentCommandList = currentLayer.commands
     }
+
+    /**
+     * Gets a pooled [Rectangle] that will automatically be freed on [end].
+     */
+    fun getPooledRectangle(): Rectangle = rectanglePool.obtain()
+
+    /**
+     * Gets a pooled [GlyphLayout] that will automatically be freed on [end].
+     */
+    fun getPooledGlyphLayout(): GlyphLayout = glyphLayoutPool.obtain()
+
+    /**
+     * Gets a pooled [GUICommandList] that will automatically be freed on [end].
+     */
+    fun getPooledCommandList(): GUICommandList = commandListPool.obtain()
 
     /**
      * Executes [block] in a new layer on top of the current one.
@@ -254,25 +288,27 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
      *
      * @param block The block to execute.
      */
-    fun layerUp(block: () -> Unit) {
+    fun <R> layerUp(block: () -> R): R {
         currentLayerIndex++
         if (currentLayerIndex >= layers.size)
             layers.add(GUILayer())
 
-        val previousCommandList = currentCommandList
-        currentCommandList = currentLayer.commands
+        val previousCommandList = internalCurrentCommandList
+        internalCurrentCommandList = currentLayer.commands
 
         val scissorRectangle = currentScissorRectangle
         if (scissorRectangle != null)
             currentCommandList.pushScissor(scissorRectangle.x, scissorRectangle.y, scissorRectangle.width, scissorRectangle.height)
 
-        block()
+        val result = block()
 
         if (scissorRectangle != null)
             currentCommandList.popScissor()
 
-        currentCommandList = previousCommandList
+        internalCurrentCommandList = previousCommandList
         currentLayerIndex--
+
+        return result
     }
 
     /**
@@ -282,20 +318,29 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
      *
      * @param block The block to execute.
      */
-    fun layerDown(block: () -> Unit) {
+    fun <R> layerDown(block: () -> R): R {
         currentLayerIndex--
         if (currentLayerIndex < 0) {
             currentLayerIndex = 0
             layers.add(0, GUILayer())
         }
 
-        val previousCommandList = currentCommandList
-        currentCommandList = currentLayer.commands
+        val previousCommandList = internalCurrentCommandList
+        internalCurrentCommandList = currentLayer.commands
 
-        block()
+        val scissorRectangle = currentScissorRectangle
+        if (scissorRectangle != null)
+            currentCommandList.pushScissor(scissorRectangle.x, scissorRectangle.y, scissorRectangle.width, scissorRectangle.height)
 
-        currentCommandList = previousCommandList
+        val result = block()
+
+        if (scissorRectangle != null)
+            currentCommandList.popScissor()
+
+        internalCurrentCommandList = previousCommandList
         currentLayerIndex++
+
+        return result
     }
 
     /**
@@ -305,17 +350,26 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
      *
      * @param block The block to execute.
      */
-    fun topLayer(block: () -> Unit) {
+    fun <R> topLayer(block: () -> R): R {
         val previousLayerIndex = currentLayerIndex
         currentLayerIndex = layers.size - 1
 
-        val previousCommandList = currentCommandList
-        currentCommandList = currentLayer.commands
+        val previousCommandList = internalCurrentCommandList
+        internalCurrentCommandList = currentLayer.commands
 
-        block()
+        val scissorRectangle = currentScissorRectangle
+        if (scissorRectangle != null)
+            currentCommandList.pushScissor(scissorRectangle.x, scissorRectangle.y, scissorRectangle.width, scissorRectangle.height)
 
-        currentCommandList = previousCommandList
+        val result = block()
+
+        if (scissorRectangle != null)
+            currentCommandList.popScissor()
+
+        internalCurrentCommandList = previousCommandList
         currentLayerIndex = previousLayerIndex
+
+        return result
     }
 
     /**
@@ -325,17 +379,45 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
      *
      * @param block The block to execute.
      */
-    fun bottomLayer(block: () -> Unit) {
+    fun <R> bottomLayer(block: () -> R): R {
         val previousLayerIndex = currentLayerIndex
         currentLayerIndex = 0
 
-        val previousCommandList = currentCommandList
-        currentCommandList = currentLayer.commands
+        val previousCommandList = internalCurrentCommandList
+        internalCurrentCommandList = currentLayer.commands
 
-        block()
+        val scissorRectangle = currentScissorRectangle
+        if (scissorRectangle != null)
+            currentCommandList.pushScissor(scissorRectangle.x, scissorRectangle.y, scissorRectangle.width, scissorRectangle.height)
 
-        currentCommandList = previousCommandList
+        val result = block()
+
+        if (scissorRectangle != null)
+            currentCommandList.popScissor()
+
+        internalCurrentCommandList = previousCommandList
         currentLayerIndex = previousLayerIndex
+
+        return result
+    }
+
+    /**
+     * Transforms every element added to this [GUI] while executing [block] with the given [matrix].
+     * If this call is nested, a matrix stack is used so every call to this uses the previous one to calculate the complete transform matrix.
+     *
+     * @param matrix The matrix to transform the elements with.
+     * @param block The block to execute.
+     */
+    fun <R> transformed(matrix: Matrix3x2, block: () -> R): R {
+        currentCommandList.pushMatrix(matrix)
+        matrixStack.push(matrix)
+
+        val result = block()
+
+        currentCommandList.popMatrix()
+        matrixStack.pop()
+
+        return result
     }
 
     /**
@@ -346,11 +428,11 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
      * @return The command list.
      */
     fun recordCommands(block: () -> Unit): GUICommandList {
-        val list = GUICommandList()
-        val previousList = currentCommandList
-        currentCommandList = list
+        val list = getPooledCommandList()
+        val previousCommandList = internalCurrentCommandList
+        internalCurrentCommandList = list
         block()
-        currentCommandList = previousList
+        internalCurrentCommandList = previousCommandList
         return list
     }
 
@@ -369,18 +451,21 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
      * @return The element.
      */
     fun setLastElement(x: Float, y: Float, width: Float, height: Float): GUIElement {
-        return setLastElement(
-            if (isSameLine)
-                object : GUIElement(x, y, width, height) {
-                    override val nextX get() = x + width
-                    override val nextY get() = y
-                }
-            else
-                object : GUIElement(x, y, width, height) {
-                    override val nextX get() = x
-                    override val nextY get() = y + height
-                }
-        )
+        val element = elementPool.obtain()
+        element.x = x
+        element.y = y
+        element.width = width
+        element.height = height
+
+        if (isSameLine) {
+            element.getNextX = { x + width }
+            element.getNextY = { y }
+        } else {
+            element.getNextX = { x }
+            element.getNextY = { y + height }
+        }
+
+        return setLastElement(element)
     }
 
     /**
@@ -466,9 +551,15 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
      *
      * @return The created element.
      */
-    fun absolute(x: Float, y: Float) = object : GUIElement(x, y, 0.0f, 0.0f) {
-        override val nextX get() = x
-        override val nextY get() = y
+    fun absolute(x: Float, y: Float): GUIElement {
+        val element = elementPool.obtain()
+        element.x = x
+        element.y = y
+        element.width = 0.0f
+        element.height = 0.0f
+        element.getNextX = { element.x }
+        element.getNextY = { element.y }
+        return element
     }
 
     /**
@@ -482,9 +573,15 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
      *
      * @return The created element.
      */
-    fun relative(factorX: Float, factorY: Float, srcX: Float = Kore.graphics.width.toFloat(), srcY: Float = Kore.graphics.height.toFloat()) = object : GUIElement(factorX * srcX, factorY * srcY, 0.0f, 0.0f) {
-        override val nextX get() = x
-        override val nextY get() = y
+    fun relative(factorX: Float, factorY: Float, srcX: Float = Kore.graphics.width.toFloat(), srcY: Float = Kore.graphics.height.toFloat()): GUIElement {
+        val element = elementPool.obtain()
+        element.x = factorX * srcX
+        element.y = factorY * srcY
+        element.width = 0.0f
+        element.height = 0.0f
+        element.getNextX = { element.x }
+        element.getNextY = { element.y }
+        return element
     }
 
     /**
@@ -627,7 +724,7 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
         if (!isInteractionEnabled)
             return 0
 
-        if(isInteractionDisabledFromPopup)
+        if (isInteractionDisabledFromPopup)
             return 0
 
         if (checkVisibility && !isPositionVisible(touchPosition))
@@ -638,7 +735,18 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
 
         var state = 0
 
-        if (touchPosition in rectangle) {
+        val isHovered = if (matrixStack.isEmpty)
+            touchPosition in rectangle
+        else {
+            boundsPath.clear()
+            matrixStack.currentMatrix.transform(rectangle.minX, rectangle.minY, boundsPath::add)
+            matrixStack.currentMatrix.transform(rectangle.maxX, rectangle.minY, boundsPath::add)
+            matrixStack.currentMatrix.transform(rectangle.maxX, rectangle.maxY, boundsPath::add)
+            matrixStack.currentMatrix.transform(rectangle.minX, rectangle.maxY, boundsPath::add)
+            touchPosition in boundsPath
+        }
+
+        if (isHovered) {
             if (currentDragDropData != null || externalDroppedElements.isNotEmpty()) {
                 state += State.HOVERED_DROPPABLE
 
@@ -657,6 +765,9 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
                     TouchBehaviour.REPEATED -> if (Kore.input.isTouched) state += State.ACTIVE
                     else -> {}
                 }
+
+                if (isJustDoubleTapped)
+                    state += State.DOUBLE_TAP
             }
 
             if (lastTouchPosition !in rectangle)
@@ -751,21 +862,22 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
      *
      * @param block The block to execute to retrieve the element.
      */
-    fun getElementSize(block: () -> GUIElement): GUIElement {
+    fun getElementSize(block: () -> Any): GUIElement {
         val previousIsInteractionEnabled = isInteractionEnabled
-        val previousCommandList = currentCommandList
-
         isInteractionEnabled = false
-        currentCommandList = GUICommandList()
 
         lateinit var result: GUIElement
 
+        val previousIsMeasuringElementSize = isMeasuringElementSize
+        isMeasuringElementSize = true
+
         transient(true, false) {
-            result = block()
+            result = group { block() }
         }
 
+        isMeasuringElementSize = previousIsMeasuringElementSize
+
         isInteractionEnabled = previousIsInteractionEnabled
-        currentCommandList = previousCommandList
 
         return result
     }
@@ -813,7 +925,9 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
      */
     fun end() {
         if (lastUpdatedFrame != Kore.graphics.statistics.numFrames) {
+            isJustDoubleTapped = false
             currentScrollAmount.mul(0.75f)
+
             if (currentScrollAmount.lengthSquared <= 0.01f)
                 currentScrollAmount.setZero()
 
@@ -866,6 +980,12 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
                 drawPopup(0)
             }
 
+        currentDragDropData?.let {
+            topLayer {
+                it.drawPayload(this)
+            }
+        }
+
         transform.setToOrtho2D(Kore.graphics.safeInsetLeft.toFloat(), Kore.graphics.safeWidth.toFloat(), Kore.graphics.safeHeight.toFloat(), Kore.graphics.safeInsetTop.toFloat())
 
         Game.graphics2d.render(transform) { renderer ->
@@ -878,6 +998,11 @@ class GUI(val skin: GUISkin = GUISkin()) : Disposable {
                 }
             }
         }
+
+        rectanglePool.freePooled()
+        glyphLayoutPool.freePooled()
+        commandListPool.freePooled()
+        elementPool.freePooled()
     }
 
     /**

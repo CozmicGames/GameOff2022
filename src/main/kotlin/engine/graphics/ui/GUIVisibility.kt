@@ -1,5 +1,6 @@
 package engine.graphics.ui
 
+import com.cozmicgames.utils.collections.Pool
 import com.cozmicgames.utils.collections.PriorityList
 import com.cozmicgames.utils.maths.Vector2
 
@@ -10,12 +11,18 @@ import com.cozmicgames.utils.maths.Vector2
  * There is lots to be optimized here, but it works for now.
  */
 class GUIVisibility {
-    class Node(val x: Float, val y: Float, val width: Float, val height: Float) : Comparable<Node> {
+    class Node : Comparable<Node> {
+        var x = 0.0f
+        var y = 0.0f
+        var width = 0.0f
+        var height = 0.0f
+
         override fun compareTo(other: Node): Int {
             return if (x < other.x) -1 else if (x > other.x) 1 else 0
         }
     }
 
+    private val nodePool = Pool(supplier = { Node() })
     private val nodesInternal = PriorityList<Node>()
 
     val nodes get() = nodesInternal.asIterable()
@@ -26,7 +33,12 @@ class GUIVisibility {
     private var maxY = -Float.MAX_VALUE
 
     fun add(x: Float, y: Float, width: Float, height: Float) {
-        nodesInternal.add(Node(x, y, width, height))
+        nodesInternal.add(nodePool.obtain().also {
+            it.x = x
+            it.y = y
+            it.width = width
+            it.height = height
+        })
 
         if (x < minX)
             minX = x
@@ -62,6 +74,7 @@ class GUIVisibility {
     }
 
     fun reset() {
+        nodesInternal.forEach(nodePool::free)
         nodesInternal.clear()
         minX = 0.0f
         minY = 0.0f

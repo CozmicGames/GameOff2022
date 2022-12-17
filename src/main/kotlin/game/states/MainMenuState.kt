@@ -3,6 +3,7 @@ package game.states
 import com.cozmicgames.Kore
 import com.cozmicgames.graphics
 import com.cozmicgames.utils.Color
+import engine.Game
 import engine.GameState
 import engine.graphics.ui.GUI
 import engine.graphics.ui.widgets.textButton
@@ -25,6 +26,9 @@ class MainMenuState : GameState {
         }
         gui.textButton("Edit level") {
             returnState = LevelEditorGameState()
+        }
+        gui.textButton("Zip") {
+            Game.assets.createZipArchive()
         }
         gui.end()
 

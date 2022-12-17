@@ -1,14 +1,14 @@
 package engine.graphics.ui.widgets
 
-import com.cozmicgames.utils.maths.Rectangle
-import engine.graphics.font.GlyphLayout
 import engine.graphics.ui.*
 import kotlin.math.max
 
 fun GUI.dropdown(title: String, isOpen: Boolean, minWidth: Float? = null, action: (Boolean) -> Unit): GUIElement {
     val (x, y) = getLastElement()
 
-    val layout = GlyphLayout(title, drawableFont)
+    val layout = getPooledGlyphLayout()
+    layout.update(title, drawableFont)
+
     val textX = x + skin.elementPadding
     val textY = y + skin.elementPadding
 
@@ -19,7 +19,7 @@ fun GUI.dropdown(title: String, isOpen: Boolean, minWidth: Float? = null, action
     val dropdownX = x + width - skin.elementPadding - skin.contentSize
     val dropDownY = y + skin.elementPadding
 
-    val rectangle = Rectangle()
+    val rectangle = getPooledRectangle()
     rectangle.x = x
     rectangle.y = y
     rectangle.width = width

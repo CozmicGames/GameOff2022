@@ -3,6 +3,7 @@ package game.states
 import com.cozmicgames.Kore
 import com.cozmicgames.files
 import com.cozmicgames.files.FileHandle
+import com.cozmicgames.files.extension
 import com.cozmicgames.files.isDirectory
 import com.cozmicgames.graphics
 import com.cozmicgames.utils.Color
@@ -10,6 +11,7 @@ import com.cozmicgames.utils.durationOf
 import com.cozmicgames.utils.extensions.extension
 import engine.Game
 import engine.GameState
+import engine.graphics.asRegion
 import engine.graphics.ui.GUI
 import engine.graphics.ui.widgets.label
 import game.Version
@@ -44,6 +46,13 @@ class LoadingGameState : GameState {
                 else if (it.extension in supportedAssetFormats)
                     loadingTasks += LoadingTask(file)
             }
+        }
+
+        Kore.files.local("assets.zip").openZip()?.list {
+            if (it.isDirectory)
+                searchDirectory(it)
+            else if (it.extension in supportedAssetFormats)
+                loadingTasks += LoadingTask(it)
         }
 
         searchDirectory(Kore.files.asset("assets"))
@@ -82,7 +91,7 @@ class LoadingGameState : GameState {
         val progress = loadedTasks.toFloat() / totalTasks
 
         Game.graphics2d.render {
-            it.draw(Game.textures[Kore.files.asset("internal/icons/icon.png")], iconX, iconY, iconSize, iconSize)
+            it.draw(Game.textures[Kore.files.asset("internal/icons/icon.png")] ?: Game.graphics2d.missingTexture.asRegion(), iconX, iconY, iconSize, iconSize)
             it.drawRect(progressX, progressY, progressWidth, progressHeight, Color.GRAY)
             it.drawRect(progressX, progressY, progressWidth * progress, progressHeight, Color.RED)
         }

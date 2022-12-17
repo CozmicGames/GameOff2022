@@ -1,6 +1,5 @@
 package engine.graphics.ui.widgets
 
-import com.cozmicgames.utils.maths.Rectangle
 import engine.graphics.ui.GUI
 import engine.graphics.ui.GUIElement
 import engine.graphics.ui.drawRectFilled
@@ -15,7 +14,12 @@ fun GUI.checkBox(isChecked: Boolean, action: (Boolean) -> Unit): GUIElement {
     val (x, y) = getLastElement()
     val size = skin.elementSize
 
-    val rectangle = Rectangle(x, y, size, size)
+    val rectangle = getPooledRectangle()
+    rectangle.x = x
+    rectangle.y = y
+    rectangle.width = size
+    rectangle.height = size
+
     val state = getState(rectangle, GUI.TouchBehaviour.ONCE_UP)
 
     currentCommandList.drawRectFilled(x, y, size, size, skin.roundedCorners, skin.cornerRounding, if (GUI.State.HOVERED in state) skin.hoverColor else skin.normalColor)

@@ -1,9 +1,7 @@
 package engine.graphics.ui.widgets
 
 import com.cozmicgames.utils.Color
-import com.cozmicgames.utils.maths.Rectangle
 import engine.graphics.TextureRegion
-import engine.graphics.font.GlyphLayout
 import engine.graphics.font.HAlign
 import engine.graphics.ui.*
 import kotlin.math.max
@@ -22,7 +20,9 @@ import kotlin.math.min
  */
 fun GUI.imageLabel(text: String, texture: TextureRegion? = null, backgroundColor: Color? = null, maxWidth: Float? = null, minWidth: Float? = null, align: HAlign = HAlign.LEFT, overrideFontColor: Color? = null): GUIElement {
     val (x, y) = getLastElement()
-    val layout = GlyphLayout(text, drawableFont)
+    val layout = getPooledGlyphLayout()
+    layout.update(text, drawableFont)
+
     val textX = x + skin.elementPadding
     val textY = y + skin.elementPadding
     var textWidth = layout.width + 2.0f * skin.elementPadding
@@ -31,7 +31,11 @@ fun GUI.imageLabel(text: String, texture: TextureRegion? = null, backgroundColor
     val fontColor = overrideFontColor ?: skin.fontColor
 
     if (maxWidth != null) {
-        val clipRectangle = Rectangle(x, y, maxWidth, textHeight)
+        val clipRectangle = getPooledRectangle()
+        clipRectangle.x = x
+        clipRectangle.y = y
+        clipRectangle.width = maxWidth
+        clipRectangle.height = textHeight
 
         if (backgroundColor != null)
             currentCommandList.drawRectFilled(x, y, textWidth, textHeight, skin.roundedCorners, skin.cornerRounding, backgroundColor)

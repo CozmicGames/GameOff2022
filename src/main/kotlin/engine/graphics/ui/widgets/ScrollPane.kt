@@ -16,7 +16,7 @@ import engine.graphics.ui.drawRectFilled
  * @param scroll The current scroll position of the scroll pane. This function will update the scroll position automatically.
  * @param backgroundColor The panels' background color.
  */
-fun GUI.scrollPane(maxWidth: Float? = null, maxHeight: Float? = null, scroll: Vector2, backgroundColor: Color = skin.backgroundColor, block: () -> Unit): GUIElement {
+fun GUI.scrollPane(maxWidth: Float? = null, maxHeight: Float? = null, scroll: Vector2, backgroundColor: Color = skin.backgroundColor, block: (Scrollbar) -> Unit): GUIElement {
     lateinit var element: GUIElement
 
     val commands = recordCommands {

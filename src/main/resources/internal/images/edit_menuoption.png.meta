@@ -1,0 +1,10 @@
+{
+    "name": {
+        "type": "STRING",
+        "value": "internal/images/edit_menuoption.png"
+    },
+    "filterName": {
+        "type": "STRING",
+        "value": "LINEAR"
+    }
+}

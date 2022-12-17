@@ -1,6 +1,5 @@
 package engine.graphics.ui.widgets
 
-import com.cozmicgames.utils.maths.Rectangle
 import engine.graphics.ui.DragDropData
 import engine.graphics.ui.GUI
 import engine.graphics.ui.GUIElement
@@ -19,12 +18,14 @@ import engine.graphics.ui.drawRect
  */
 fun GUI.draggable(createData: () -> DragDropData<*>, borderThickness: Float = 0.0f, block: () -> GUIElement): GUIElement {
     val element = block()
-    val rectangle = Rectangle(element.x, element.y, element.width, element.height)
+    val rectangle = getPooledRectangle()
+    rectangle.x = element.x
+    rectangle.y = element.y
+    rectangle.width = element.width
+    rectangle.height = element.height
 
-    if (currentDragDropData != null) {
-        currentDragDropData?.drawPayload(this)
+    if (currentDragDropData != null)
         return element
-    }
 
     val grabState = getState(rectangle, GUI.TouchBehaviour.ONCE_DOWN)
 

@@ -12,6 +12,7 @@ import com.cozmicgames.utils.maths.OrthographicCamera
 import com.cozmicgames.utils.maths.Vector2
 import com.cozmicgames.utils.maths.unproject
 import engine.Game
+import engine.graphics.asRegion
 import engine.graphics.drawPathStroke
 import engine.graphics.drawRect
 import engine.graphics.ui.GUI
@@ -197,8 +198,8 @@ class LevelEditor(val scene: Scene) : Disposable {
             var backgroundTileY = floor((camera.position.y - camera.rectangle.height * 0.5f) / backgroundTileHeight) * backgroundTileHeight
 
             repeat(numBackgroundTilesY) {
-                Game.renderer.submit(grid.layer - 1, backgroundTexture.texture, "default", false, false) {
-                    it.drawRect(backgroundTileX, backgroundTileY, backgroundTileWidth, backgroundTileHeight, color = Color.LIGHT_GRAY, u0 = backgroundTexture.u0, v0 = backgroundTexture.v0, u1 = backgroundTexture.u1, v1 = backgroundTexture.v1)
+                Game.renderer.submit(grid.layer - 1, backgroundTexture?.texture ?: Game.graphics2d.missingTexture, "default", false, false) {
+                    it.drawRect(backgroundTileX, backgroundTileY, backgroundTileWidth, backgroundTileHeight, color = Color.LIGHT_GRAY, u0 = backgroundTexture?.u0 ?: 0.0f, v0 = backgroundTexture?.v0 ?: 0.0f, u1 = backgroundTexture?.u1 ?: 0.0f, v1 = backgroundTexture?.v1 ?: 0.0f)
                 }
 
                 backgroundTileY += backgroundTileHeight
@@ -285,8 +286,8 @@ class LevelEditor(val scene: Scene) : Disposable {
                     } ?: "<missing>"] ?: Game.graphics2d.missingMaterial
 
                     val previewTexture = Game.textures[previewMaterial.colorTexturePath]
-                    Game.renderer.submit(grid.layer - 1, previewTexture.texture, previewMaterial.shader, false, false) {
-                        it.drawRect(tileX * grid.cellSize, tileY * grid.cellSize, grid.cellSize, grid.cellSize, Color(1.0f, 1.0f, 1.0f, 0.5f), u0 = previewTexture.u0, v0 = previewTexture.v1, u1 = previewTexture.u1, v1 = previewTexture.v0)
+                    Game.renderer.submit(grid.layer - 1, previewTexture?.texture ?: Game.graphics2d.missingTexture, previewMaterial.shader, false, false) {
+                        it.drawRect(tileX * grid.cellSize, tileY * grid.cellSize, grid.cellSize, grid.cellSize, Color(1.0f, 1.0f, 1.0f, 0.5f), u0 = previewTexture?.u0 ?: 0.0f, v0 = previewTexture?.v1 ?: 0.0f, u1 = previewTexture?.u1 ?: 0.0f, v1 = previewTexture?.v0 ?: 0.0f)
                     }
 
                     if (Kore.input.isButtonDown(MouseButtons.LEFT) && grid.getCellType(tileX, tileY) != currentType)
@@ -353,32 +354,32 @@ class LevelEditor(val scene: Scene) : Disposable {
         gui.panel(panelWidth, panelHeight, tilesScroll, Game.editorStyle.panelContentBackgroundColor, Game.editorStyle.panelTitleBackgroundColor, {
             titleLabel()
         }) {
-            val imageSize = panelWidth - gui.skin.scrollbarSize - gui.skin.elementPadding * 3.0f
+            val imageSize = if (it.hasVerticalScrollbar) panelWidth - gui.skin.scrollbarSize else panelWidth - gui.skin.elementPadding
 
             ToolType.values().forEach {
                 val texture = Game.textures[it.texture]
                 when (it) {
-                    ToolType.FILL -> gui.imageButton(texture, imageSize) {
+                    ToolType.FILL -> gui.imageButton(texture ?: Game.graphics2d.missingTexture.asRegion(), imageSize) {
                         selectionRegion?.let {
                             commandExecutor.setTileTypes(it, currentType)
                         }
                     }
-                    ToolType.UNDO -> gui.imageButton(texture, imageSize) {
+                    ToolType.UNDO -> gui.imageButton(texture ?: Game.graphics2d.missingTexture.asRegion(), imageSize) {
                         commandExecutor.undo()
                     }
-                    ToolType.REDO -> gui.imageButton(texture, imageSize) {
+                    ToolType.REDO -> gui.imageButton(texture ?: Game.graphics2d.missingTexture.asRegion(), imageSize) {
                         commandExecutor.redo()
                     }
-                    ToolType.COPY -> gui.imageButton(texture, imageSize) {
+                    ToolType.COPY -> gui.imageButton(texture ?: Game.graphics2d.missingTexture.asRegion(), imageSize) {
                         copySelection()
                     }
-                    ToolType.PASTE -> gui.imageButton(texture, imageSize) {
+                    ToolType.PASTE -> gui.imageButton(texture ?: Game.graphics2d.missingTexture.asRegion(), imageSize) {
                         pasteSelection()
                     }
-                    ToolType.SETTINGS -> gui.imageButton(texture, imageSize) {
+                    ToolType.SETTINGS -> gui.imageButton(texture ?: Game.graphics2d.missingTexture.asRegion(), imageSize) {
                         setReturnState(ReturnState.Menu)
                     }
-                    else -> gui.selectableImage(texture, imageSize, isSelected = currentTool == it) {
+                    else -> gui.selectableImage(texture ?: Game.graphics2d.missingTexture.asRegion(), imageSize, isSelected = currentTool == it) {
                         selectionRegion = null
                         currentTool = it
                     }
@@ -472,7 +473,7 @@ class LevelEditor(val scene: Scene) : Disposable {
 
                             gui.blankLine(gui.skin.elementPadding)
 
-                            gui.tooltip(gui.imageButton(Game.textures["internal/images/layer_delete.png"], color = Color.SCARLET) {
+                            gui.tooltip(gui.imageButton(Game.textures["internal/images/layer_delete.png"] ?: Game.graphics2d.missingTexture.asRegion(), color = Color.SCARLET) {
                                 scene.removeGameObject(grid.gameObject)
                             }, "Delete this layer")
                         }
@@ -565,7 +566,7 @@ class LevelEditor(val scene: Scene) : Disposable {
         gui.panel(panelWidth, panelHeight, tilesScroll, Game.editorStyle.panelContentBackgroundColor, Game.editorStyle.panelTitleBackgroundColor, {
             titleLabel()
         }) {
-            val imageSize = panelWidth - gui.skin.scrollbarSize - gui.skin.elementPadding * 3.0f
+            val imageSize = panelWidth - gui.skin.scrollbarSize
 
             Game.tileSets[grid.tileSet]?.let {
                 for (name in it.tileTypeNames) {

@@ -12,4 +12,5 @@ class AssetSelectorData {
     val elementsScroll = Vector2()
     val assetTitleScroll = Vector2()
     val filterTextData = TextData { }
+    var currentFolder: String? = null
 }

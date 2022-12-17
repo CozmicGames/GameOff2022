@@ -2,14 +2,15 @@ package game.assets
 
 import com.cozmicgames.Kore
 import com.cozmicgames.files
-import com.cozmicgames.files.FileHandle
-import com.cozmicgames.files.extension
+import com.cozmicgames.files.*
 import com.cozmicgames.log
 import com.cozmicgames.utils.Disposable
 import game.assets.types.*
+import kotlin.reflect.KClass
 
 class AssetManager : Disposable {
     private val registeredAssetTypes = hashSetOf<AssetType<*>>()
+    private val managers = hashMapOf<Any, AssetTypeManager<*, *>>()
 
     val assetTypes get() = registeredAssetTypes.toList()
 
@@ -33,6 +34,21 @@ class AssetManager : Disposable {
 
     fun findOrRegisterAssetType(predicate: (AssetType<*>) -> Boolean, block: () -> AssetType<*>) = findAssetType(predicate) ?: registerAssetType(block())
 
+    inline fun <reified T : Any> registerAssetTypeManager(manager: AssetTypeManager<T, *>) = registerAssetTypeManager(T::class, manager)
+
+    fun <T : Any> registerAssetTypeManager(type: KClass<T>, manager: AssetTypeManager<T, *>) {
+        managers.put(type, manager)?.dispose()
+    }
+
+    inline fun <reified T : Any> getAssetTypeManager() = getAssetTypeManager(T::class)
+
+    fun <T : Any> getAssetTypeManager(type: KClass<T>) = managers[type] as? AssetTypeManager<T, *>
+
+    fun <T : Any> getAsset(name: String, type: KClass<T>): T? {
+        val manager = getAssetTypeManager(type) ?: return null
+        return manager[name]
+    }
+
     fun load(file: FileHandle) {
         val type = findAssetType { file.extension in it.supportedFormats } ?: return
         load(file, type)
@@ -48,9 +64,29 @@ class AssetManager : Disposable {
         type.load(file)
     }
 
-    fun importFile(file: FileHandle, destFile: FileHandle): FileHandle {
-        file.copyTo(destFile)
-        return destFile
+    fun createZipArchive() {
+        val zipFile = Kore.files.local("assets.zip")
+
+        if (zipFile.exists)
+            zipFile.delete()
+
+        zipFile.buildZip {
+            fun addDirectory(directoryFile: FileHandle) {
+                directoryFile.list {
+                    val file = directoryFile.child(it)
+                    if (file.isDirectory)
+                        addDirectory(file)
+                    else {
+                        val name = file.fullPath.removePrefix("${directoryFile.fullPath}/")
+                        val content = file.readToBytes()
+
+                        addFile(name, content)
+                    }
+                }
+            }
+
+            addDirectory(Kore.files.local("assets"))
+        }
     }
 
     override fun dispose() {

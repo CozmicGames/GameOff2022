@@ -4,7 +4,6 @@ import com.cozmicgames.Kore
 import com.cozmicgames.graphics
 import com.cozmicgames.utils.Color
 import com.cozmicgames.utils.maths.Rectangle
-import engine.graphics.font.GlyphLayout
 import engine.graphics.ui.*
 
 fun GUI.tooltip(element: GUIElement, text: String, backgroundColor: Color? = skin.backgroundColor): GUIElement {
@@ -13,7 +12,8 @@ fun GUI.tooltip(element: GUIElement, text: String, backgroundColor: Color? = ski
 
     topLayer {
         layerUp {
-            val layout = GlyphLayout(text, drawableFont)
+            val layout = getPooledGlyphLayout()
+            layout.update(text, drawableFont)
 
             var x = touchPosition.x
             var y = touchPosition.y - (layout.height + skin.elementPadding * 2.0f)

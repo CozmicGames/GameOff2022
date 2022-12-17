@@ -4,7 +4,7 @@ import engine.Game
 import engine.graphics.ui.GUI
 import engine.graphics.ui.GUIElement
 import engine.graphics.ui.widgets.*
-import engine.materials.Material
+import engine.graphics.Material
 import game.assets.types.ShaderAssetType
 import game.assets.types.TextureAssetType
 import game.extensions.materialPreview

@@ -1,12 +1,20 @@
 package engine.graphics.ui.widgets
 
 import com.cozmicgames.Kore
-import com.cozmicgames.graphics
 import com.cozmicgames.input
-import com.cozmicgames.utils.maths.Rectangle
 import com.cozmicgames.utils.maths.Vector2
 import engine.graphics.ui.*
 import kotlin.math.min
+
+enum class Scrollbar {
+    NONE,
+    HORIZONTAL,
+    VERTICAL,
+    BOTH;
+
+    val hasHorizontalScrollbar get() = this == HORIZONTAL || this == BOTH
+    val hasVerticalScrollbar get() = this == VERTICAL || this == BOTH
+}
 
 /**
  * Adds a scrollable area to the GUI.
@@ -15,8 +23,9 @@ import kotlin.math.min
  * @param maxWidth The maximum width of the scroll pane. If null, the width of the scroll pane is calculated automatically to fit all elements.
  * @param maxHeight The maximum height of the scroll pane. If null, the height of the scroll pane is calculated automatically to fit all elements.
  * @param scroll The current scroll position of the scroll pane. This function will update the scroll position automatically.
+ * @param block The block to execute inside this area. It receives a [Scrollbar] value to check if and what scrollbars are shown.
  */
-fun GUI.scrollArea(maxWidth: Float? = null, maxHeight: Float? = null, scroll: Vector2, block: () -> Unit): GUIElement {
+fun GUI.scrollArea(maxWidth: Float? = null, maxHeight: Float? = null, scroll: Vector2, block: (Scrollbar) -> Unit): GUIElement {
     val (x, y) = getLastElement()
 
     if (maxWidth == null)
@@ -25,65 +34,77 @@ fun GUI.scrollArea(maxWidth: Float? = null, maxHeight: Float? = null, scroll: Ve
     if (maxHeight == null)
         scroll.y = 0.0f
 
-    val contentX = x + skin.elementPadding
-    val contentY = y + skin.elementPadding
+    val contentSize = getElementSize { block(Scrollbar.NONE) }
 
-    val scissorRectangle = Rectangle(x, y, maxWidth ?: (Kore.graphics.width - x), maxHeight ?: (Kore.graphics.height - y))
+    var contentWidth: Float
+    var contentHeight: Float
+
+    if (maxWidth == null) {
+        contentWidth = contentSize.width
+    } else {
+        contentWidth = min(contentSize.width, maxWidth)
+
+        if (scroll.x < 0.0f)
+            scroll.x = 0.0f
+
+        if (scroll.x > contentSize.width - contentWidth)
+            scroll.x = contentSize.width - contentWidth
+    }
+
+    if (maxHeight == null) {
+        contentHeight = contentSize.height
+    } else {
+        contentHeight = min(contentSize.height, maxHeight)
+
+        if (scroll.y < 0.0f)
+            scroll.y = 0.0f
+
+        if (scroll.y > contentSize.height - contentHeight)
+            scroll.y = contentSize.height - contentHeight
+    }
+
+    var totalWidth = contentWidth
+    var totalHeight = contentHeight
+
+    val showHorizontalScrollbar = contentWidth < contentSize.width
+    val showVerticalScrollbar = contentHeight < contentSize.height
+
+    if (showHorizontalScrollbar)
+        contentWidth -= skin.scrollbarSize
+
+    if (showVerticalScrollbar)
+        contentHeight -= skin.scrollbarSize
+
+    val scissorRectangle = getPooledRectangle()
+    scissorRectangle.x = x
+    scissorRectangle.y = y
+    scissorRectangle.width = contentWidth
+    scissorRectangle.height = contentHeight
+
     val previousScissorRectangle = currentScissorRectangle
     val previousUseScissorRectangleForElementPositioning = useScissorRectangleForElementPositioning
 
     currentScissorRectangle = scissorRectangle
     useScissorRectangleForElementPositioning = false
 
-    lateinit var content: GUIElement
-
     val commands = recordCommands {
         transient(addToLayer = false) {
-            setLastElement(absolute(contentX - scroll.x, contentY - scroll.y))
-            content = group { block() }
+            setLastElement(absolute(x - scroll.x, y - scroll.y))
+            block(
+                when {
+                    showHorizontalScrollbar && !showVerticalScrollbar -> Scrollbar.HORIZONTAL
+                    !showHorizontalScrollbar && showVerticalScrollbar -> Scrollbar.VERTICAL
+                    showHorizontalScrollbar && showVerticalScrollbar -> Scrollbar.BOTH
+                    else -> Scrollbar.NONE
+                }
+            )
         }
     }
 
     currentScissorRectangle = previousScissorRectangle
     useScissorRectangleForElementPositioning = previousUseScissorRectangleForElementPositioning
 
-    val contentWidth: Float
-    val contentHeight: Float
-    val areaWidth: Float
-    val areaHeight: Float
-
-    if (maxWidth == null) {
-        contentWidth = content.width
-        areaWidth = contentWidth + skin.elementPadding * 2.0f
-    } else {
-        areaWidth = min(content.width + skin.elementPadding * 2.0f, maxWidth) + skin.elementPadding * 2.0f
-        contentWidth = areaWidth - skin.elementPadding * 2.0f
-
-        if (scroll.x < 0.0f)
-            scroll.x = 0.0f
-
-        if (scroll.x > content.width - contentWidth)
-            scroll.x = content.width - contentWidth
-    }
-
-    if (maxHeight == null) {
-        contentHeight = content.height
-        areaHeight = contentHeight + skin.elementPadding * 2.0f
-    } else {
-        areaHeight = min(content.height + skin.elementPadding * 2.0f, maxHeight) + skin.elementPadding * 2.0f
-        contentHeight = areaHeight - skin.elementPadding * 2.0f
-
-        if (scroll.y < 0.0f)
-            scroll.y = 0.0f
-
-        if (scroll.y > content.height - contentHeight)
-            scroll.y = content.height - contentHeight
-    }
-
-    var totalWidth = areaWidth
-    var totalHeight = areaHeight
-
-    val rectangle = Rectangle()
+    val rectangle = getPooledRectangle()
     rectangle.x = x
     rectangle.y = y
     rectangle.width = totalWidth
@@ -94,16 +115,16 @@ fun GUI.scrollArea(maxWidth: Float? = null, maxHeight: Float? = null, scroll: Ve
         if (maxHeight != null) scroll.y += currentScrollAmount.y
     }
 
-    val scrollbarCommands = GUICommandList()
+    val scrollbarCommands = getPooledCommandList()
 
-    if (areaWidth - skin.elementPadding * 2.0f < content.width) {
+    if (showHorizontalScrollbar) {
         val scrollbarX = x
-        val scrollbarY = y + contentHeight + skin.elementPadding * 2.0f
-        val scrollbarWidth = areaWidth
+        val scrollbarY = y + contentHeight
+        val scrollbarWidth = contentWidth
         val scrollbarHeight = skin.scrollbarSize
 
-        val scrollbarGripX = scrollbarX + scroll.x * contentWidth / content.width
-        val scrollbarGripWidth = (contentWidth / content.width) * scrollbarWidth + skin.elementPadding
+        val scrollbarGripX = scrollbarX + scroll.x * contentWidth / contentSize.width
+        val scrollbarGripWidth = (contentWidth / contentSize.width) * scrollbarWidth
 
         val scrollbarState = getState(rectangle.apply {
             this.x = scrollbarX
@@ -122,7 +143,7 @@ fun GUI.scrollArea(maxWidth: Float? = null, maxHeight: Float? = null, scroll: Ve
         val scrollbarColor = if (GUI.State.HOVERED in scrollbarState) skin.hoverColor else skin.normalColor
 
         val scrollbarGripColor = if (GUI.State.ACTIVE in scrollbarGripState && GUI.State.HOVERED in scrollbarGripState) {
-            scroll.x += Kore.input.deltaX * content.width / contentWidth
+            scroll.x += Kore.input.deltaX * contentSize.width / contentWidth
             skin.highlightColor
         } else if (GUI.State.HOVERED in scrollbarGripState)
             skin.normalColor
@@ -136,14 +157,14 @@ fun GUI.scrollArea(maxWidth: Float? = null, maxHeight: Float? = null, scroll: Ve
     } else
         scroll.x = 0.0f
 
-    if (areaHeight - skin.elementPadding * 2.0f < content.height) {
-        val scrollbarX = x + contentWidth + skin.elementPadding * 2.0f
+    if (showVerticalScrollbar) {
+        val scrollbarX = x + contentWidth
         val scrollbarY = y
         val scrollbarWidth = skin.scrollbarSize
-        val scrollbarHeight = areaHeight
+        val scrollbarHeight = contentHeight
 
-        val scrollbarGripY = scrollbarY + scroll.y * contentHeight / content.height
-        val scrollbarGripHeight = (contentHeight / content.height) * scrollbarHeight + skin.elementPadding
+        val scrollbarGripY = scrollbarY + scroll.y * contentHeight / contentSize.height
+        val scrollbarGripHeight = (contentHeight / contentSize.height) * scrollbarHeight
 
         val scrollbarState = getState(rectangle.apply {
             this.x = scrollbarX
@@ -162,7 +183,7 @@ fun GUI.scrollArea(maxWidth: Float? = null, maxHeight: Float? = null, scroll: Ve
         val scrollbarColor = if (GUI.State.HOVERED in scrollbarState) skin.hoverColor else skin.normalColor
 
         val scrollbarGripColor = if (GUI.State.ACTIVE in scrollbarGripState && GUI.State.HOVERED in scrollbarGripState) {
-            scroll.y -= Kore.input.deltaY * content.height / contentHeight
+            scroll.y -= Kore.input.deltaY * contentSize.height / contentHeight
             skin.highlightColor
         } else if (GUI.State.HOVERED in scrollbarGripState)
             skin.normalColor
@@ -176,7 +197,7 @@ fun GUI.scrollArea(maxWidth: Float? = null, maxHeight: Float? = null, scroll: Ve
     } else
         scroll.y = 0.0f
 
-    currentCommandList.pushScissor(contentX, contentY, contentWidth, contentHeight)
+    currentCommandList.pushScissor(x, y, contentWidth, contentHeight)
     currentCommandList.addCommandList(commands)
     currentCommandList.popScissor()
 

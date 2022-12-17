@@ -2,7 +2,6 @@ package engine.graphics.ui.widgets
 
 import com.cozmicgames.utils.Color
 import com.cozmicgames.utils.maths.Corners
-import com.cozmicgames.utils.maths.Rectangle
 import engine.graphics.ui.GUI
 import engine.graphics.ui.GUIElement
 import engine.graphics.ui.drawRectFilled
@@ -19,7 +18,7 @@ fun GUI.colorEdit(color: Color, onChange: () -> Unit = {}): GUIElement {
 
     val hsv = color.toHSV()
     var newAlpha = color.a
-    val rectangle = Rectangle()
+    val rectangle = getPooledRectangle()
     val size = 100.0f
     var totalWidth = 0.0f
     var totalHeight = 0.0f

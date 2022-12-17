@@ -4,18 +4,16 @@ import com.cozmicgames.*
 import com.cozmicgames.files.FileHandle
 import com.cozmicgames.files.nameWithExtension
 import com.cozmicgames.files.writeString
+import com.cozmicgames.utils.Color
 import engine.Game
 import engine.graphics.ui.DragDropData
 import engine.graphics.ui.GUI
 import engine.graphics.ui.GUIElement
 import engine.graphics.ui.widgets.label
-import engine.materials.Material
+import engine.graphics.Material
 import game.assets.AssetType
 import game.assets.MetaFile
-import game.extensions.editable
-import game.extensions.importButton
-import game.extensions.materialPreview
-import game.extensions.plusButton
+import game.extensions.*
 import game.level.ui.MaterialEditorPopup
 import game.level.ui.editorStyle
 
@@ -40,17 +38,23 @@ class MaterialAssetType : AssetType<MaterialAssetType> {
     private val importPopup = MaterialImportPopup()
     private val editorPopup = MaterialEditorPopup()
 
-    override fun preview(gui: GUI, size: Float, name: String, showEditIcon: Boolean) {
-        if (showEditIcon && Game.materials.getFileHandle(name)?.isWritable != false)
-            gui.editable({ gui.materialPreview(Game.materials[name] ?: Game.graphics2d.missingMaterial, size) }, size * 0.25f) {
-                Kore.onNextFrame {
-                    editorPopup.reset(name)
-                    gui.popup(editorPopup)
+    override fun preview(gui: GUI, size: Float, name: String, showMenu: Boolean) {
+        if (showMenu) {
+            val options = if (Game.materials.getFileHandle(name)?.isWritable != false) arrayOf(MENUOPTION_EDIT, MENUOPTION_DELETE) else arrayOf(MENUOPTION_DELETE)
+
+            gui.elementMenu({
+                gui.materialPreview(Game.materials[name] ?: Game.graphics2d.missingMaterial, size)
+            }, gui.skin.elementSize * 0.66f, options, backgroundColor = Color.DARK_GRAY) {
+                when (it) {
+                    MENUOPTION_EDIT -> Kore.onNextFrame {
+                        editorPopup.reset(name)
+                        gui.popup(editorPopup)
+                    }
+                    MENUOPTION_DELETE -> Game.materials.remove(name)
                 }
             }
-        else
+        } else
             gui.materialPreview(Game.materials[name] ?: Game.graphics2d.missingMaterial, size)
-
     }
 
     override fun createDragDropData(name: String) = { DragDropData(MaterialAsset(name)) { label(name) } }

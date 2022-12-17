@@ -50,7 +50,7 @@ abstract class SimpleImportPopup(type: AssetType<*>, titleString: String) : Impo
             if (assetFile.exists)
                 assetFile.delete()
 
-            Game.assets.importFile(Kore.files.absolute(file), assetFile)
+            Kore.files.absolute(file).copyTo(assetFile)
 
             val metaFile = MetaFile()
             metaFile.name = nameTextData.text

@@ -12,6 +12,7 @@ import engine.graphics.ui.GUI
 import engine.graphics.ui.GUIElement
 import engine.graphics.ui.GUIPopup
 import engine.graphics.ui.widgets.*
+import game.assets.types.AssetTypes
 import game.assets.types.MaterialAssetType
 import game.extensions.*
 import game.level.TileSet
@@ -34,9 +35,15 @@ class TileSetEditorPopup : GUIPopup() {
     private var currentRuleIndex: Int? = null
     private var openRuleEditorIndex: Int? = null
     private val ruleEditorScrollAmounts = Array(8) { Vector2() }
+    private val ruleGeneratorPopup = RuleGeneratorPopup()
 
     private val tempTileSet = TileSet("temp")
     private var tileSetName: String? = null
+
+    init {
+        assetSelectorData.showEditIcons = true
+        assetSelectorData.filter = { it.name == AssetTypes.TEXTURES }
+    }
 
     fun reset(tileSetName: String) {
         tempTileSet.clear()
@@ -100,7 +107,7 @@ class TileSetEditorPopup : GUIPopup() {
                 gui.materialEditor(materialName, materialEditorData)
             }
 
-            val panelWidth = materialEditorSize.width + gui.skin.scrollbarSize + gui.skin.elementPadding * 3.0f
+            val panelWidth = materialEditorSize.width + gui.skin.scrollbarSize
             val panelHeight = min(Kore.graphics.height - gui.skin.elementSize - Kore.graphics.height * Game.editorStyle.assetSelectorHeight, materialEditorSize.height)
 
             gui.setLastElement(gui.absolute(Kore.graphics.width - panelWidth, gui.skin.elementSize))
@@ -124,7 +131,7 @@ class TileSetEditorPopup : GUIPopup() {
             gui.panel(panelWidth, panelHeight, tilesScroll, Game.editorStyle.panelContentBackgroundColor, Game.editorStyle.panelTitleBackgroundColor, {
                 titleLabel()
             }) {
-                val imageSize = panelWidth - gui.skin.scrollbarSize - gui.skin.elementPadding * 3.0f
+                val imageSize = panelWidth - gui.skin.scrollbarSize
 
                 for (name in tempTileSet.tileTypeNames) {
                     if (name !in tempTileSet)
@@ -132,7 +139,7 @@ class TileSetEditorPopup : GUIPopup() {
 
                     val tileType = tempTileSet[name] ?: continue
 
-                    gui.editable({
+                    gui.elementMenu({
                         val previewMaterial = Game.materials[tileType.defaultMaterial] ?: Game.graphics2d.missingMaterial
 
                         gui.draggable({
@@ -140,13 +147,15 @@ class TileSetEditorPopup : GUIPopup() {
                         }) {
                             gui.materialPreview(previewMaterial, imageSize, imageSize)
                         }
-                    }, imageSize * 0.25f) {
-                        currentTileType = name
-                        currentRuleIndex = null
-                        ruleEditorScrollAmounts.forEach {
-                            it.setZero()
+                    }, imageSize * 0.25f, arrayOf(MENUOPTION_EDIT), backgroundColor = Color.DARK_GRAY) {
+                        if (it == MENUOPTION_EDIT) {
+                            currentTileType = name
+                            currentRuleIndex = null
+                            ruleEditorScrollAmounts.forEach {
+                                it.setZero()
+                            }
+                            currentMaterial = tempTileSet[name]?.defaultMaterial
                         }
-                        currentMaterial = tempTileSet[name]?.defaultMaterial
                     }
                 }
 
@@ -177,7 +186,7 @@ class TileSetEditorPopup : GUIPopup() {
                     }
                 }
 
-                val imageSize = panelWidth - gui.skin.scrollbarSize - gui.skin.elementPadding * 3.0f
+                val imageSize = panelWidth - gui.skin.scrollbarSize
 
                 gui.label("Default", Game.editorStyle.panelTitleBackgroundColor, minWidth = panelWidth)
 
@@ -202,20 +211,32 @@ class TileSetEditorPopup : GUIPopup() {
 
                     val material = Game.materials[rule.material] ?: Game.graphics2d.missingMaterial
 
-                    gui.deletable({
+                    gui.elementMenu({
                         gui.selectable({
                             gui.materialPreview(material, imageSize)
                         }, isSelected) {
                             currentRuleIndex = index
                             currentMaterial = rule.material
                         }
-                    }, imageSize * 0.25f) {
-                        tileType.removeRule(rule)
+                    }, imageSize * 0.25f, arrayOf(MENUOPTION_DELETE), backgroundColor = Color.DARK_GRAY) {
+                        if (it == MENUOPTION_DELETE) {
+                            if (currentRuleIndex == index)
+                                currentRuleIndex = null
+
+                            tileType.removeRule(rule)
+                        }
                     }
                 }
 
                 gui.plusButton(imageSize) {
                     tileType.addRule()
+                }
+
+                gui.ninesliceButton(imageSize) {
+                    currentTileType?.let {
+                        ruleGeneratorPopup.reset(tempTileSet, it)
+                        gui.popup(ruleGeneratorPopup)
+                    }
                 }
             }
         }
@@ -249,62 +270,68 @@ class TileSetEditorPopup : GUIPopup() {
                                 gui.colorRectangle(Game.editorStyle.ruleEditorCellBackgroundColor, cellSize)
 
                                 gui.transient(ignoreGroup = true) {
-                                    gui.setLastElement(gui.absolute(x + Game.editorStyle.ruleEditorCellBorderSize, y + Game.editorStyle.ruleEditorCellBorderSize))
+                                    val cellContentX = x + Game.editorStyle.ruleEditorCellBorderSize
+                                    val cellContentY = y + Game.editorStyle.ruleEditorCellBorderSize
+
+                                    gui.setLastElement(gui.absolute(cellContentX, cellContentY))
 
                                     when (dependency?.type) {
-                                        TileSet.TileType.Dependency.Type.TILE -> {
+                                        TileSet.TileType.Dependency.Type.TILE, TileSet.TileType.Dependency.Type.TILE_EXCLUSIVE -> {
                                             val previewContentSize = cellSize - Game.editorStyle.ruleEditorCellBorderSize * 2.0f
 
-                                            val tileTypeDependency = dependency as TileSet.TileType.TileTypeDependency
+                                            val tileTypes = if (dependency is TileSet.TileType.TileTypeDependency)
+                                                dependency.tileTypes
+                                            else
+                                                (dependency as TileSet.TileType.ExclusiveTileTypeDependency).tileTypes
 
-                                            if (tileTypeDependency.tileTypes.isNotEmpty()) {
-                                                if (tileTypeDependency.tileTypes.size == 1) {
-                                                    val previewMaterial = Game.materials[tempTileSet[tileTypeDependency.tileTypes.first()]?.getMaterial() ?: "<missing>"] ?: Game.graphics2d.missingMaterial
+                                            if (tileTypes.isNotEmpty()) {
+                                                if (tileTypes.size == 1) {
+                                                    val previewMaterial = Game.materials[tempTileSet[tileTypes.first()]?.getMaterial() ?: "<missing>"] ?: Game.graphics2d.missingMaterial
                                                     gui.materialPreview(previewMaterial, previewContentSize)
                                                 } else {
                                                     val previewImagesPerRow = 2
 
-                                                    if (tileTypeDependency.tileTypes.size < previewImagesPerRow * previewImagesPerRow) {
-                                                        val previewImageSize = previewContentSize / previewImagesPerRow
+                                                    val previewImageSize = if (tileTypes.size > 4)
+                                                        previewContentSize / previewImagesPerRow - gui.skin.scrollbarSize
+                                                    else
+                                                        previewContentSize / previewImagesPerRow
 
-                                                        val previewImages = tileTypeDependency.tileTypes.mapTo(arrayListOf()) {
+                                                    gui.scrollArea(maxHeight = previewContentSize, scroll = ruleEditorScrollAmounts[index]) {
+                                                        val previewImages = tileTypes.mapTo(arrayListOf()) {
                                                             {
                                                                 val previewMaterial = Game.materials[tempTileSet[it]?.getMaterial() ?: "<missing>"] ?: Game.graphics2d.missingMaterial
-                                                                gui.deletable({
+                                                                gui.elementMenu({
                                                                     gui.materialPreview(previewMaterial, previewImageSize)
-                                                                }, previewImageSize * 0.2f, false) {
-                                                                    tileTypeDependency.tileTypes.remove(it)
-                                                                    if (tileTypeDependency.tileTypes.isEmpty())
-                                                                        newType = null
+                                                                }, previewImageSize * 0.25f, arrayOf(MENUOPTION_DELETE), backgroundColor = Color.DARK_GRAY) {
+                                                                    if (it == MENUOPTION_DELETE) {
+                                                                        tileTypes.remove(it)
+                                                                        if (tileTypes.isEmpty())
+                                                                            newType = null
+                                                                    }
                                                                 }
                                                             }
                                                         }
 
-                                                        gui.multilineList(previewContentSize, 0.0f) {
+                                                        gui.multilineListWithSameElementWidths(previewImageSize * 2, previewImageSize) {
                                                             previewImages.removeFirstOrNull()
-                                                        }
-                                                    } else {
-                                                        val previewContentWidth = previewContentSize - gui.skin.scrollbarSize - gui.skin.elementPadding * 4.0f
-                                                        val previewImageSize = previewContentWidth / previewImagesPerRow
-
-                                                        val previewImages = tileTypeDependency.tileTypes.mapTo(arrayListOf()) {
-                                                            {
-                                                                val previewMaterial = Game.materials[tempTileSet[it]?.getMaterial() ?: "<missing>"] ?: Game.graphics2d.missingMaterial
-                                                                gui.deletable({
-                                                                    gui.materialPreview(previewMaterial, previewImageSize)
-                                                                }, previewImageSize * 0.2f, false) {
-                                                                    tileTypeDependency.tileTypes.remove(it)
-                                                                }
-                                                            }
-                                                        }
-
-                                                        gui.scrollArea(maxWidth = previewContentWidth, scroll = ruleEditorScrollAmounts[index]) {
-                                                            gui.multilineList(previewContentSize, 0.0f) {
-                                                                previewImages.removeFirstOrNull()
-                                                            }
                                                         }
                                                     }
                                                 }
+
+                                                gui.setLastElement(gui.absolute(cellContentX, cellContentY))
+                                                gui.colorRectangle(Color(1.0f, 1.0f, 1.0f, 0.33f), cellSize, cellSize)
+
+                                                val label = {
+                                                    if (dependency is TileSet.TileType.TileTypeDependency)
+                                                        gui.label("Any of", maxWidth = cellSize, backgroundColor = Color.DARK_GRAY)
+                                                    else
+                                                        gui.label("Any except", maxWidth = cellSize, backgroundColor = Color.DARK_GRAY, overrideFontColor = Color.SCARLET)
+                                                }
+
+                                                val labelSize = gui.getElementSize(label)
+
+                                                gui.setLastElement(gui.absolute(x + (cellSize - labelSize.width) * 0.5f, y + (cellSize - labelSize.height) * 0.5f))
+                                                label()
                                             } else {
                                                 val label = {
                                                     gui.label("Drag tiles here", maxWidth = cellSize)
@@ -356,9 +383,17 @@ class TileSetEditorPopup : GUIPopup() {
                         TileSet.TileType.Dependency.Type.SOLID -> TileSet.TileType.SolidDependency
                         TileSet.TileType.Dependency.Type.TILE -> {
                             val newDependency = TileSet.TileType.TileTypeDependency()
+                            if (dependency is TileSet.TileType.ExclusiveTileTypeDependency)
+                                newDependency.tileTypes.addAll(dependency.tileTypes)
                             typeToAdd?.let {
                                 newDependency.tileTypes += it
                             }
+                            newDependency
+                        }
+                        TileSet.TileType.Dependency.Type.TILE_EXCLUSIVE -> {
+                            val newDependency = TileSet.TileType.ExclusiveTileTypeDependency()
+                            if (dependency is TileSet.TileType.TileTypeDependency)
+                                newDependency.tileTypes.addAll(dependency.tileTypes)
                             newDependency
                         }
                         else -> null

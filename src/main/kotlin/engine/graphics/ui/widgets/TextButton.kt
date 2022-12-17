@@ -1,9 +1,7 @@
 package engine.graphics.ui.widgets
 
 import com.cozmicgames.utils.Color
-import com.cozmicgames.utils.maths.Rectangle
 import engine.graphics.TextureRegion
-import engine.graphics.font.GlyphLayout
 import engine.graphics.ui.*
 
 /**
@@ -12,16 +10,19 @@ import engine.graphics.ui.*
  * @param text The text of the button.
  * @param texture An optional texture to display behind the text.
  * @param overrideFontColor A color that will be used for the text if not null.
+ * @param isEnabled If this button is enabled to be interacted with.
  * @param action The function to execute when the button is clicked.
  */
-fun GUI.textButton(text: String, texture: TextureRegion? = null, overrideFontColor: Color? = null, action: () -> Unit): GUIElement {
+fun GUI.textButton(text: String, texture: TextureRegion? = null, overrideFontColor: Color? = null, isEnabled: Boolean = true, action: () -> Unit): GUIElement {
     val (x, y) = getLastElement()
 
-    val rectangle = Rectangle()
+    val rectangle = getPooledRectangle()
     rectangle.x = x
     rectangle.y = y
 
-    val layout = GlyphLayout(text, drawableFont)
+    val layout = getPooledGlyphLayout()
+    layout.update(text, drawableFont)
+
     val textX = x + skin.elementPadding
     val textY = y + skin.elementPadding
 
@@ -33,10 +34,10 @@ fun GUI.textButton(text: String, texture: TextureRegion? = null, overrideFontCol
 
     val state = getState(rectangle, GUI.TouchBehaviour.ONCE_UP)
 
-    val color = if (GUI.State.ACTIVE in state) {
+    val color = if (isEnabled && GUI.State.ACTIVE in state) {
         action()
         skin.highlightColor
-    } else if (GUI.State.HOVERED in state)
+    } else if (isEnabled && GUI.State.HOVERED in state)
         skin.hoverColor
     else
         skin.normalColor

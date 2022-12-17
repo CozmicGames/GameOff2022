@@ -69,7 +69,6 @@ class TonemapPresentFunction(type: Type = Type.REINHARD, dependencyName: String,
         FILMIC,
         LUMA_BASED_REINHARD,
         WHITE_PRESERVING_LUMA_BASED_REINHARD,
-        ROM_BIN_DA_HOUSE,
-
+        ROM_BIN_DA_HOUSE
     }
 }

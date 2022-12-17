@@ -1,6 +1,5 @@
 package engine.graphics.ui.widgets
 
-import com.cozmicgames.utils.maths.Rectangle
 import engine.graphics.ui.GUI
 import engine.graphics.ui.GUIElement
 import engine.graphics.ui.drawCircleFilled
@@ -16,7 +15,12 @@ fun GUI.option(option: Int, selectedOption: Int, action: (Int) -> Unit): GUIElem
     val (x, y) = getLastElement()
     val size = skin.elementSize
 
-    val rectangle = Rectangle(x, y, size, size)
+    val rectangle = getPooledRectangle()
+    rectangle.x = x
+    rectangle.y = y
+    rectangle.width = size
+    rectangle.height = size
+
     val state = getState(rectangle, GUI.TouchBehaviour.ONCE_UP)
 
     currentCommandList.drawCircleFilled(x + size * 0.5f, y + size * 0.5f, size * 0.5f, if (GUI.State.HOVERED in state) skin.hoverColor else skin.normalColor)

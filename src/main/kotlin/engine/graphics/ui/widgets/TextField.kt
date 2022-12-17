@@ -4,8 +4,6 @@ import com.cozmicgames.Kore
 import com.cozmicgames.graphics
 import com.cozmicgames.input
 import com.cozmicgames.utils.maths.Corners
-import com.cozmicgames.utils.maths.Rectangle
-import engine.graphics.font.GlyphLayout
 import engine.graphics.ui.*
 import kotlin.math.max
 import kotlin.math.sin
@@ -20,8 +18,10 @@ import kotlin.math.sin
 fun GUI.textField(textData: TextData, minWidth: Float = skin.elementSize, action: () -> Unit = {}): GUIElement {
     val (x, y) = getLastElement()
 
-    val layout = GlyphLayout(textData.text, drawableFont)
-    val rectangle = Rectangle()
+    val layout = getPooledGlyphLayout()
+    val rectangle = getPooledRectangle()
+
+    layout.update(textData.text, drawableFont)
 
     rectangle.x = x
     rectangle.y = y

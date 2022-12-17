@@ -13,7 +13,6 @@ import com.cozmicgames.utils.maths.Camera
 import com.cozmicgames.utils.maths.Matrix4x4
 import com.cozmicgames.utils.maths.OrthographicCamera
 import com.cozmicgames.utils.use
-import engine.materials.Material
 
 class Graphics2D : Disposable {
     val linearClampSampler = Kore.graphics.createSampler {
@@ -79,7 +78,7 @@ class Graphics2D : Disposable {
 
     fun <R> render(transform: Matrix4x4 = defaultCamera.projectionView, block: (Renderer) -> R): R {
         renderer.begin()
-        renderer.transform = transform
+        renderer.cameraTransform = transform
         val result = block(renderer)
         renderer.end()
         return result

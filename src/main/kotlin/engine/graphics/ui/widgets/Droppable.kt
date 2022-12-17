@@ -1,6 +1,5 @@
 package engine.graphics.ui.widgets
 
-import com.cozmicgames.utils.maths.Rectangle
 import engine.graphics.ui.DragDropData
 import engine.graphics.ui.GUI
 import engine.graphics.ui.GUIElement
@@ -26,7 +25,12 @@ import kotlin.reflect.KClass
  */
 fun <T : Any> GUI.droppable(onDrop: (T) -> Unit, acceptedType: KClass<T>, borderThickness: Float = 0.0f, block: () -> GUIElement): GUIElement {
     val element = block()
-    val rectangle = Rectangle(element.x, element.y, element.width, element.height)
+    val rectangle = getPooledRectangle()
+    rectangle.x = element.x
+    rectangle.y = element.y
+    rectangle.width = element.width
+    rectangle.height = element.height
+
     val state = getState(rectangle, GUI.TouchBehaviour.ONCE_UP, false)
 
     val isDragDropDataAccepted = currentDragDropData != null && acceptedType.isInstance(currentDragDropData?.payload)

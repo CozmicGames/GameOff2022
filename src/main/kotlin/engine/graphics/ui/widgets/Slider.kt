@@ -1,6 +1,5 @@
 package engine.graphics.ui.widgets
 
-import com.cozmicgames.utils.maths.Rectangle
 import engine.graphics.ui.GUI
 import engine.graphics.ui.GUIElement
 import engine.graphics.ui.drawCircleFilled
@@ -28,7 +27,7 @@ fun GUI.slider(amount: Float, width: Float = skin.elementSize * 10.0f, action: (
 
     currentCommandList.drawRectFilled(sliderX, sliderY, sliderWidth, sliderHeight, skin.roundedCorners, skin.cornerRounding, skin.normalColor)
 
-    val rectangle = Rectangle()
+    val rectangle = getPooledRectangle()
     rectangle.x = x
     rectangle.y = y
     rectangle.width = width

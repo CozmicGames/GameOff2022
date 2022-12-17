@@ -1,8 +1,6 @@
 package engine.graphics.ui.widgets
 
-import com.cozmicgames.utils.maths.Rectangle
 import engine.graphics.TextureRegion
-import engine.graphics.font.GlyphLayout
 import engine.graphics.ui.*
 
 /**
@@ -16,11 +14,13 @@ import engine.graphics.ui.*
 fun GUI.selectableText(text: String, texture: TextureRegion? = null, isSelected: Boolean, action: () -> Unit): GUIElement {
     val (x, y) = getLastElement()
 
-    val rectangle = Rectangle()
+    val rectangle = getPooledRectangle()
     rectangle.x = x
     rectangle.y = y
 
-    val layout = GlyphLayout(text, drawableFont)
+    val layout = getPooledGlyphLayout()
+    layout.update(text, drawableFont)
+
     val textX = x + skin.elementPadding
     val textY = y + skin.elementPadding
 

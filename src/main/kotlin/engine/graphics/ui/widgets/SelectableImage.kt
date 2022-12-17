@@ -1,7 +1,6 @@
 package engine.graphics.ui.widgets
 
 import com.cozmicgames.utils.Color
-import com.cozmicgames.utils.maths.Rectangle
 import engine.graphics.TextureRegion
 import engine.graphics.ui.GUI
 import engine.graphics.ui.GUIElement
@@ -20,7 +19,7 @@ import engine.graphics.ui.drawRect
 fun GUI.selectableImage(texture: TextureRegion, width: Float = skin.elementSize, height: Float = width, isSelected: Boolean, action: () -> Unit): GUIElement {
     val (x, y) = getLastElement()
 
-    val rectangle = Rectangle()
+    val rectangle = getPooledRectangle()
     rectangle.x = x
     rectangle.y = y
     rectangle.width = width

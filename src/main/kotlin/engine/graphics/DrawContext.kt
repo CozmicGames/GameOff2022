@@ -55,10 +55,18 @@ class DrawContext(size: Int = 512) : Disposable {
 
     private val triangulator = Triangulator()
 
+    private val matrixStack = MatrixStack()
+
+    var useMatrixStack = true
+
     var currentIndex = 0
 
     fun vertex(block: (Vertex) -> Unit) {
-        block(vertices[numVertices++])
+        val vertex = vertices[numVertices++]
+        block(vertex)
+
+        if (useMatrixStack && (matrixStack.isNotEmpty))
+            vertex.transform(matrixStack.currentMatrix)
     }
 
     fun vertex(x: Float, y: Float, u: Float, v: Float, uMin: Float, vMin: Float, uMax: Float, vMax: Float, color: Int) {
@@ -89,10 +97,16 @@ class DrawContext(size: Int = 512) : Disposable {
         indices[numIndices++] = index
     }
 
-    fun transform(matrix: Matrix3x2) {
-        repeat(numVertices) {
-            vertices[it].transform(matrix)
-        }
+    fun pushMatrix(matrix: Matrix3x2) {
+        matrixStack.push(matrix)
+    }
+
+    fun popMatrix() {
+        matrixStack.pop()
+    }
+
+    fun clearMatrixStack() {
+        matrixStack.clear()
     }
 
     fun path(block: VectorPath.() -> Unit): VectorPath {

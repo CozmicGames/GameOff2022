@@ -4,7 +4,6 @@ import com.cozmicgames.graphics.gpu.Texture2D
 import com.cozmicgames.utils.Disposable
 import com.cozmicgames.utils.collections.Resettable
 import com.cozmicgames.utils.maths.Rectangle
-import engine.materials.Material
 
 sealed class Renderable {
     var layer = 0
