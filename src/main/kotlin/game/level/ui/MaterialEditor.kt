@@ -5,13 +5,14 @@ import engine.graphics.ui.GUI
 import engine.graphics.ui.GUIElement
 import engine.graphics.ui.widgets.*
 import engine.graphics.Material
+import engine.assets.managers.getMaterial
 import game.assets.types.ShaderAssetType
 import game.assets.types.TextureAssetType
 import game.extensions.materialPreview
 
 
 fun GUI.materialEditor(materialName: String, data: MaterialEditorData): GUIElement {
-    val material = Game.materials[materialName] ?: return absolute(0.0f, 0.0f)
+    val material = Game.assets.getMaterial(materialName) ?: return absolute(0.0f, 0.0f)
     return materialEditor(material, data)
 }
 

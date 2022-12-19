@@ -13,6 +13,8 @@ import engine.Game
 import engine.graphics.font.GlyphLayout
 import engine.graphics.shaders.DefaultShader
 import engine.graphics.shaders.Shader
+import engine.assets.managers.getShader
+import engine.assets.managers.getTexture
 
 class Renderer(graphics: Graphics2D) : Disposable {
     val context = DrawContext()
@@ -207,7 +209,7 @@ class Renderer(graphics: Graphics2D) : Disposable {
     fun drawGlyphs(glyphLayout: GlyphLayout, x: Float, y: Float, color: Color = Color.WHITE) {
         require(isActive)
 
-        val shader = Game.shaders[glyphLayout.font.requiredShader] ?: DefaultShader
+        val shader = Game.assets.getShader(glyphLayout.font.requiredShader) ?: DefaultShader
 
         withShader(shader) {
             getPipeline(shader)?.let {
@@ -221,7 +223,7 @@ class Renderer(graphics: Graphics2D) : Disposable {
     fun drawGlyphsClipped(glyphLayout: GlyphLayout, x: Float, y: Float, clipRect: Rectangle, color: Color = Color.WHITE) {
         require(isActive)
 
-        val shader = Game.shaders[glyphLayout.font.requiredShader] ?: DefaultShader
+        val shader = Game.assets.getShader(glyphLayout.font.requiredShader) ?: DefaultShader
 
         withShader(shader) {
             getPipeline(shader)?.let {
@@ -254,8 +256,8 @@ class Renderer(graphics: Graphics2D) : Disposable {
         val material = batch.material
 
         if (material != null) {
-            shader = Game.shaders[material.shader] ?: DefaultShader
-            texture = (Game.textures[material.colorTexturePath] ?: Game.graphics2d.missingTexture.asRegion()).texture
+            shader = Game.assets.getShader(material.shader) ?: DefaultShader
+            texture = (Game.assets.getTexture(material.colorTexturePath)).texture
             shader.setMaterial(material)
             context.draw(batch.context)
         } else {

@@ -3,7 +3,7 @@
         "type": "STRING",
         "value": "internal/images/minus_button.png"
     },
-    "filterName": {
+    "filter": {
         "type": "STRING",
         "value": "LINEAR"
     }

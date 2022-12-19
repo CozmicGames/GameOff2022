@@ -3,7 +3,7 @@
         "type": "STRING",
         "value": "internal/images/assettype_font.png"
     },
-    "filterName": {
+    "filter": {
         "type": "STRING",
         "value": "LINEAR"
     }

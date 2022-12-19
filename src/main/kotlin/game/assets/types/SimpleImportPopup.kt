@@ -11,7 +11,7 @@ import engine.graphics.ui.TextData
 import engine.graphics.ui.widgets.label
 import engine.graphics.ui.widgets.textField
 import game.assets.AssetType
-import game.assets.MetaFile
+import engine.assets.MetaFile
 
 abstract class SimpleImportPopup(type: AssetType<*>, titleString: String) : ImportPopup(type, titleString) {
     private lateinit var file: String
@@ -44,7 +44,7 @@ abstract class SimpleImportPopup(type: AssetType<*>, titleString: String) : Impo
     }
 
     override fun onImport() {
-        val assetFile = Game.assets.getAssetFileHandle(nameTextData.text)
+        val assetFile = Game.assets.toAssetFileHandle(nameTextData.text)
 
         if (file != nameTextData.text) {
             if (assetFile.exists)

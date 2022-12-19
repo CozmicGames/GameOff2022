@@ -20,17 +20,16 @@ import engine.input.ControlManager
 import engine.input.GestureManager
 import engine.physics.Physics
 import engine.utils.Rumble
-import game.assets.AssetManager
-import game.assets.managers.*
+import engine.assets.AssetManager
 import game.states.LoadingGameState
 
 object Game : Application {
-    val sounds by Kore.context.injector(true) { SoundManager() }
-    val textures by Kore.context.injector(true) { TextureManager() }
-    val fonts by Kore.context.injector(true) { FontManager() }
-    val shaders by Kore.context.injector(true) { ShaderManager() }
-    val materials by Kore.context.injector(true) { MaterialManager() }
-    val tileSets by Kore.context.injector(true) { TileSetManager() }
+    //val sounds by Kore.context.injector(true) { SoundManager() }
+    //val textures by Kore.context.injector(true) { TextureManager() }
+    //val fonts by Kore.context.injector(true) { FontManager() }
+    //val shaders by Kore.context.injector(true) { ShaderManager() }
+    //val materials by Kore.context.injector(true) { MaterialManager() }
+    //val tileSets by Kore.context.injector(true) { TileSetManager() }
     val assets by Kore.context.injector(true) { AssetManager() }
 
     val controls by Kore.context.injector(true) { ControlManager() }

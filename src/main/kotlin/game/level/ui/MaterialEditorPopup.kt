@@ -8,6 +8,8 @@ import engine.graphics.ui.GUIElement
 import engine.graphics.ui.GUIPopup
 import engine.graphics.ui.widgets.*
 import engine.graphics.Material
+import engine.assets.getAssetFileHandle
+import engine.assets.managers.getMaterial
 
 class MaterialEditorPopup : GUIPopup() {
     private lateinit var materialName: String
@@ -32,8 +34,8 @@ class MaterialEditorPopup : GUIPopup() {
 
                     val createButton = {
                         gui.textButton("Save") {
-                            Game.materials[materialName]?.set(material)
-                            Game.materials.getFileHandle(materialName)?.writeString(material.write(), false)
+                            Game.assets.getMaterial(materialName)?.set(material)
+                            Game.assets.getAssetFileHandle(materialName)?.writeString(material.write(), false)
                             closePopup()
                         }
                     }

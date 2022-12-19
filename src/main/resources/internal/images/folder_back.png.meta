@@ -3,7 +3,7 @@
         "type": "STRING",
         "value": "internal/images/folder_back.png"
     },
-    "filterName": {
+    "filter": {
         "type": "STRING",
         "value": "LINEAR"
     }

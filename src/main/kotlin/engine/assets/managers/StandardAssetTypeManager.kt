@@ -1,18 +1,19 @@
-package game.assets.managers
+package engine.assets.managers
 
 import com.cozmicgames.files.FileHandle
 import com.cozmicgames.files.nameWithExtension
 import com.cozmicgames.utils.Disposable
-import game.assets.AssetTypeManager
+import engine.assets.AssetTypeManager
+import kotlin.reflect.KClass
 
-abstract class StandardAssetTypeManager<T : Any, P> : AssetTypeManager<T, P>() {
+abstract class StandardAssetTypeManager<T : Any, P>(assetType: KClass<T>) : AssetTypeManager<T, P>(assetType) {
     private inner class Entry(val value: T, val file: FileHandle?)
 
     protected open val defaultValue: T? = null
 
     private val entries = hashMapOf<String, Entry>()
 
-    val names get() = entries.keys.toList()
+    override val names get() = entries.keys
 
     fun add(name: String, value: T, file: FileHandle? = null) {
         entries[name] = Entry(value, file)
@@ -20,8 +21,9 @@ abstract class StandardAssetTypeManager<T : Any, P> : AssetTypeManager<T, P>() {
 
     override operator fun contains(name: String) = name in entries
 
-    override fun remove(name: String) {
+    override fun remove(name: String): Boolean {
         val entry = entries.remove(name)
+
         if (entry != null) {
             val file = entry.file
 
@@ -33,7 +35,11 @@ abstract class StandardAssetTypeManager<T : Any, P> : AssetTypeManager<T, P>() {
                 if (metaFile.exists && metaFile.isWritable)
                     metaFile.delete()
             }
+
+            return true
         }
+
+        return false
     }
 
     override operator fun get(name: String): T? {

@@ -12,7 +12,6 @@ import com.cozmicgames.utils.maths.OrthographicCamera
 import com.cozmicgames.utils.maths.Vector2
 import com.cozmicgames.utils.maths.unproject
 import engine.Game
-import engine.graphics.asRegion
 import engine.graphics.drawPathStroke
 import engine.graphics.drawRect
 import engine.graphics.ui.GUI
@@ -23,13 +22,16 @@ import engine.scene.Scene
 import engine.scene.components.TransformComponent
 import engine.scene.findGameObjectByComponent
 import engine.scene.findGameObjectsWithComponent
-import game.assets.types.AssetTypes
+import engine.assets.managers.getMaterial
+import engine.assets.managers.getTexture
+import engine.assets.managers.getTileSet
 import game.assets.types.TileSetAssetType
 import game.components.FreeCameraControllerComponent
 import game.components.CameraComponent
 import game.components.GridComponent
 import game.components.getCellType
 import game.extensions.*
+import game.level.TileSet
 import kotlin.math.ceil
 import kotlin.math.floor
 
@@ -104,7 +106,7 @@ class LevelEditor(val scene: Scene) : Disposable {
 
     init {
         assetSelectorData.showEditIcons = true
-        assetSelectorData.filter = { it.name == AssetTypes.TILESETS }
+        assetSelectorData.filter = listOf(TileSet::class)
     }
 
     private fun findGridLayerUp(layer: Int): Int? {
@@ -184,7 +186,7 @@ class LevelEditor(val scene: Scene) : Disposable {
     }
 
     private fun drawBackground(grid: GridComponent, camera: OrthographicCamera) {
-        val backgroundTexture = Game.textures["internal/images/grid_background_8x8.png"]
+        val backgroundTexture = Game.assets.getTexture("internal/images/grid_background_8x8.png")
 
         val backgroundTileWidth = 8 * grid.cellSize
         val backgroundTileHeight = 8 * grid.cellSize
@@ -198,8 +200,8 @@ class LevelEditor(val scene: Scene) : Disposable {
             var backgroundTileY = floor((camera.position.y - camera.rectangle.height * 0.5f) / backgroundTileHeight) * backgroundTileHeight
 
             repeat(numBackgroundTilesY) {
-                Game.renderer.submit(grid.layer - 1, backgroundTexture?.texture ?: Game.graphics2d.missingTexture, "default", false, false) {
-                    it.drawRect(backgroundTileX, backgroundTileY, backgroundTileWidth, backgroundTileHeight, color = Color.LIGHT_GRAY, u0 = backgroundTexture?.u0 ?: 0.0f, v0 = backgroundTexture?.v0 ?: 0.0f, u1 = backgroundTexture?.u1 ?: 0.0f, v1 = backgroundTexture?.v1 ?: 0.0f)
+                Game.renderer.submit(grid.layer - 1, backgroundTexture.texture, "default", false, false) {
+                    it.drawRect(backgroundTileX, backgroundTileY, backgroundTileWidth, backgroundTileHeight, color = Color.LIGHT_GRAY, u0 = backgroundTexture.u0, v0 = backgroundTexture.v0, u1 = backgroundTexture.u1, v1 = backgroundTexture.v1)
                 }
 
                 backgroundTileY += backgroundTileHeight
@@ -280,14 +282,14 @@ class LevelEditor(val scene: Scene) : Disposable {
 
         when (currentTool) {
             ToolType.PENCIL -> {
-                if (isInteractionEnabled && Game.tileSets[grid.tileSet]?.contains(currentType) == true) {
-                    val previewMaterial = Game.materials[Game.tileSets[grid.tileSet]?.let {
+                if (isInteractionEnabled && Game.assets.getTileSet(grid.tileSet)?.contains(currentType) == true) {
+                    val previewMaterial = Game.assets.getMaterial(Game.assets.getTileSet(grid.tileSet)?.let {
                         it[currentType]?.getMaterial(grid, tileX, tileY)
-                    } ?: "<missing>"] ?: Game.graphics2d.missingMaterial
+                    } ?: "<missing>") ?: Game.graphics2d.missingMaterial
 
-                    val previewTexture = Game.textures[previewMaterial.colorTexturePath]
-                    Game.renderer.submit(grid.layer - 1, previewTexture?.texture ?: Game.graphics2d.missingTexture, previewMaterial.shader, false, false) {
-                        it.drawRect(tileX * grid.cellSize, tileY * grid.cellSize, grid.cellSize, grid.cellSize, Color(1.0f, 1.0f, 1.0f, 0.5f), u0 = previewTexture?.u0 ?: 0.0f, v0 = previewTexture?.v1 ?: 0.0f, u1 = previewTexture?.u1 ?: 0.0f, v1 = previewTexture?.v0 ?: 0.0f)
+                    val previewTexture = Game.assets.getTexture(previewMaterial.colorTexturePath)
+                    Game.renderer.submit(grid.layer - 1, previewTexture.texture, previewMaterial.shader, false, false) {
+                        it.drawRect(tileX * grid.cellSize, tileY * grid.cellSize, grid.cellSize, grid.cellSize, Color(1.0f, 1.0f, 1.0f, 0.5f), u0 = previewTexture.u0, v0 = previewTexture.v1, u1 = previewTexture.u1, v1 = previewTexture.v0)
                     }
 
                     if (Kore.input.isButtonDown(MouseButtons.LEFT) && grid.getCellType(tileX, tileY) != currentType)
@@ -357,29 +359,29 @@ class LevelEditor(val scene: Scene) : Disposable {
             val imageSize = if (it.hasVerticalScrollbar) panelWidth - gui.skin.scrollbarSize else panelWidth - gui.skin.elementPadding
 
             ToolType.values().forEach {
-                val texture = Game.textures[it.texture]
+                val texture = Game.assets.getTexture(it.texture)
                 when (it) {
-                    ToolType.FILL -> gui.imageButton(texture ?: Game.graphics2d.missingTexture.asRegion(), imageSize) {
+                    ToolType.FILL -> gui.imageButton(texture, imageSize) {
                         selectionRegion?.let {
                             commandExecutor.setTileTypes(it, currentType)
                         }
                     }
-                    ToolType.UNDO -> gui.imageButton(texture ?: Game.graphics2d.missingTexture.asRegion(), imageSize) {
+                    ToolType.UNDO -> gui.imageButton(texture, imageSize) {
                         commandExecutor.undo()
                     }
-                    ToolType.REDO -> gui.imageButton(texture ?: Game.graphics2d.missingTexture.asRegion(), imageSize) {
+                    ToolType.REDO -> gui.imageButton(texture, imageSize) {
                         commandExecutor.redo()
                     }
-                    ToolType.COPY -> gui.imageButton(texture ?: Game.graphics2d.missingTexture.asRegion(), imageSize) {
+                    ToolType.COPY -> gui.imageButton(texture, imageSize) {
                         copySelection()
                     }
-                    ToolType.PASTE -> gui.imageButton(texture ?: Game.graphics2d.missingTexture.asRegion(), imageSize) {
+                    ToolType.PASTE -> gui.imageButton(texture, imageSize) {
                         pasteSelection()
                     }
-                    ToolType.SETTINGS -> gui.imageButton(texture ?: Game.graphics2d.missingTexture.asRegion(), imageSize) {
+                    ToolType.SETTINGS -> gui.imageButton(texture, imageSize) {
                         setReturnState(ReturnState.Menu)
                     }
-                    else -> gui.selectableImage(texture ?: Game.graphics2d.missingTexture.asRegion(), imageSize, isSelected = currentTool == it) {
+                    else -> gui.selectableImage(texture, imageSize, isSelected = currentTool == it) {
                         selectionRegion = null
                         currentTool = it
                     }
@@ -473,7 +475,7 @@ class LevelEditor(val scene: Scene) : Disposable {
 
                             gui.blankLine(gui.skin.elementPadding)
 
-                            gui.tooltip(gui.imageButton(Game.textures["internal/images/layer_delete.png"] ?: Game.graphics2d.missingTexture.asRegion(), color = Color.SCARLET) {
+                            gui.tooltip(gui.imageButton(Game.assets.getTexture("internal/images/layer_delete.png"), color = Color.SCARLET) {
                                 scene.removeGameObject(grid.gameObject)
                             }, "Delete this layer")
                         }
@@ -568,11 +570,11 @@ class LevelEditor(val scene: Scene) : Disposable {
         }) {
             val imageSize = panelWidth - gui.skin.scrollbarSize
 
-            Game.tileSets[grid.tileSet]?.let {
+            Game.assets.getTileSet(grid.tileSet)?.let {
                 for (name in it.tileTypeNames) {
                     val tileType = it[name] ?: continue
                     val isSelected = currentType == name
-                    val previewMaterial = Game.materials[tileType.defaultMaterial] ?: Game.graphics2d.missingMaterial
+                    val previewMaterial = Game.assets.getMaterial(tileType.defaultMaterial) ?: Game.graphics2d.missingMaterial
 
                     gui.selectable({
                         gui.materialPreview(previewMaterial, imageSize, imageSize)
@@ -634,7 +636,7 @@ class LevelEditor(val scene: Scene) : Disposable {
         if (currentGrid == null)
             currentType = ""
         else if (currentType == "")
-            currentType = Game.tileSets[currentGrid.tileSet]?.tileTypeNames?.firstOrNull() ?: ""
+            currentType = Game.assets.getTileSet(currentGrid.tileSet)?.tileTypeNames?.firstOrNull() ?: ""
 
         currentGrid?.let {
             drawBackground(it, mainCamera)

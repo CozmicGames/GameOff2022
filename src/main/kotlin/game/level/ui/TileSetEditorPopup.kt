@@ -12,7 +12,10 @@ import engine.graphics.ui.GUI
 import engine.graphics.ui.GUIElement
 import engine.graphics.ui.GUIPopup
 import engine.graphics.ui.widgets.*
-import game.assets.types.AssetTypes
+import engine.assets.getAssetFileHandle
+import engine.assets.managers.getMaterial
+import engine.assets.managers.getTileSet
+import engine.graphics.TextureRegion
 import game.assets.types.MaterialAssetType
 import game.extensions.*
 import game.level.TileSet
@@ -21,7 +24,7 @@ import kotlin.math.min
 class TileSetEditorPopup : GUIPopup() {
     private class TileTypeData(val name: String)
     private inner class TileTypeDragDropData(name: String) : DragDropData<TileTypeData>(TileTypeData(name), {
-        materialPreview(Game.materials[tempTileSet[name]?.getMaterial() ?: "<mising>"] ?: Game.graphics2d.missingMaterial, Game.editorStyle.toolImageSize)
+        materialPreview(Game.assets.getMaterial(tempTileSet[name]?.getMaterial() ?: "<mising>") ?: Game.graphics2d.missingMaterial, Game.editorStyle.toolImageSize)
     })
 
     private val assetSelectorData = AssetSelectorData()
@@ -42,12 +45,12 @@ class TileSetEditorPopup : GUIPopup() {
 
     init {
         assetSelectorData.showEditIcons = true
-        assetSelectorData.filter = { it.name == AssetTypes.TEXTURES }
+        assetSelectorData.filter = listOf(TextureRegion::class)
     }
 
     fun reset(tileSetName: String) {
         tempTileSet.clear()
-        Game.tileSets[tileSetName]?.let {
+        Game.assets.getTileSet(tileSetName)?.let {
             tempTileSet.set(it)
         }
         this.tileSetName = tileSetName
@@ -74,10 +77,10 @@ class TileSetEditorPopup : GUIPopup() {
             val saveButton = {
                 gui.textButton("Save") {
                     tileSetName?.let {
-                        val tileSet = Game.tileSets[it]
+                        val tileSet = Game.assets.getTileSet(it)
                         tileSet?.clear()
                         tileSet?.set(tempTileSet)
-                        Game.tileSets.getFileHandle(it)?.writeString(Properties().also { tileSet?.write(it) }.write(), false)
+                        Game.assets.getAssetFileHandle(it)?.writeString(Properties().also { tileSet?.write(it) }.write(), false)
                     }
                     closePopup()
                 }
@@ -140,7 +143,7 @@ class TileSetEditorPopup : GUIPopup() {
                     val tileType = tempTileSet[name] ?: continue
 
                     gui.elementMenu({
-                        val previewMaterial = Game.materials[tileType.defaultMaterial] ?: Game.graphics2d.missingMaterial
+                        val previewMaterial = Game.assets.getMaterial(tileType.defaultMaterial) ?: Game.graphics2d.missingMaterial
 
                         gui.draggable({
                             TileTypeDragDropData((name))
@@ -190,7 +193,7 @@ class TileSetEditorPopup : GUIPopup() {
 
                 gui.label("Default", Game.editorStyle.panelTitleBackgroundColor, minWidth = panelWidth)
 
-                val defaultMaterial = Game.materials[tileType.defaultMaterial] ?: Game.graphics2d.missingMaterial
+                val defaultMaterial = Game.assets.getMaterial(tileType.defaultMaterial) ?: Game.graphics2d.missingMaterial
 
                 gui.selectable({
                     gui.droppable<MaterialAssetType.MaterialAsset>({
@@ -209,7 +212,7 @@ class TileSetEditorPopup : GUIPopup() {
                 tileType.rules.forEachIndexed { index, rule ->
                     val isSelected = currentRuleIndex == index
 
-                    val material = Game.materials[rule.material] ?: Game.graphics2d.missingMaterial
+                    val material = Game.assets.getMaterial(rule.material) ?: Game.graphics2d.missingMaterial
 
                     gui.elementMenu({
                         gui.selectable({
@@ -247,7 +250,7 @@ class TileSetEditorPopup : GUIPopup() {
 
             val tileType = tempTileSet[requireNotNull(currentTileType)] ?: return
             val rule = tileType.rules[currentRuleIndex ?: return]
-            val material = Game.materials[rule.material] ?: return
+            val material = Game.assets.getMaterial(rule.material) ?: return
 
             val cellSize = min(width, height) * 0.8f / 3.0f
 
@@ -286,7 +289,7 @@ class TileSetEditorPopup : GUIPopup() {
 
                                             if (tileTypes.isNotEmpty()) {
                                                 if (tileTypes.size == 1) {
-                                                    val previewMaterial = Game.materials[tempTileSet[tileTypes.first()]?.getMaterial() ?: "<missing>"] ?: Game.graphics2d.missingMaterial
+                                                    val previewMaterial = Game.assets.getMaterial(tempTileSet[tileTypes.first()]?.getMaterial() ?: "<missing>") ?: Game.graphics2d.missingMaterial
                                                     gui.materialPreview(previewMaterial, previewContentSize)
                                                 } else {
                                                     val previewImagesPerRow = 2
@@ -299,7 +302,7 @@ class TileSetEditorPopup : GUIPopup() {
                                                     gui.scrollArea(maxHeight = previewContentSize, scroll = ruleEditorScrollAmounts[index]) {
                                                         val previewImages = tileTypes.mapTo(arrayListOf()) {
                                                             {
-                                                                val previewMaterial = Game.materials[tempTileSet[it]?.getMaterial() ?: "<missing>"] ?: Game.graphics2d.missingMaterial
+                                                                val previewMaterial = Game.assets.getMaterial(tempTileSet[it]?.getMaterial() ?: "<missing>") ?: Game.graphics2d.missingMaterial
                                                                 gui.elementMenu({
                                                                     gui.materialPreview(previewMaterial, previewImageSize)
                                                                 }, previewImageSize * 0.25f, arrayOf(MENUOPTION_DELETE), backgroundColor = Color.DARK_GRAY) {

@@ -15,6 +15,7 @@ import com.cozmicgames.utils.rectpack.RectPacker
 import engine.Game
 import engine.graphics.font.DrawableFont.Companion.defaultChars
 import engine.graphics.shaders.SDFShader
+import engine.assets.managers.shaders
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
@@ -23,7 +24,7 @@ import kotlin.math.sqrt
 class SDFFont(val font: Font, override val drawableCharacters: String = defaultChars(), padding: Int = 4, downscale: Int = 3, spread: Float = 3.0f, override val size: Float = 14.0f) : DrawableFont {
     companion object {
         init {
-            Game.shaders.add("sdf", SDFShader)
+            Game.assets.shaders?.add("sdf", SDFShader)
         }
     }
 

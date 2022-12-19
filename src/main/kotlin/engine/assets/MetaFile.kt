@@ -1,4 +1,4 @@
-package game.assets
+package engine.assets
 
 import com.cozmicgames.files.FileHandle
 import com.cozmicgames.files.readToString

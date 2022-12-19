@@ -9,6 +9,7 @@ import engine.scene.GameObject
 import engine.scene.components.DrawableProviderComponent
 import engine.scene.components.TransformComponent
 import engine.scene.findGameObjectInChildren
+import engine.assets.managers.getTileSet
 import game.level.GridDrawable
 
 class GridComponent : Component(), Updateable {
@@ -22,7 +23,7 @@ class GridComponent : Component(), Updateable {
         fun rebuildDrawables() {
             removeDrawables()
 
-            val tileSet = Game.tileSets[tileSet] ?: return
+            val tileSet = Game.assets.getTileSet(tileSet) ?: return
 
             val batches = hashMapOf<String, MutableList<GridCellComponent>>()
 

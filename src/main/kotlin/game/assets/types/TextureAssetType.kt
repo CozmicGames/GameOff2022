@@ -3,7 +3,6 @@ package game.assets.types
 import com.cozmicgames.Kore
 import com.cozmicgames.dialogs
 import com.cozmicgames.files
-import com.cozmicgames.files.FileHandle
 import com.cozmicgames.files.nameWithExtension
 import com.cozmicgames.graphics
 import com.cozmicgames.graphics.Image
@@ -15,18 +14,28 @@ import com.cozmicgames.utils.Color
 import com.cozmicgames.utils.Disposable
 import com.cozmicgames.utils.extensions.extension
 import com.cozmicgames.utils.extensions.nameWithoutExtension
+import com.cozmicgames.utils.string
 import engine.Game
+import engine.assets.MetaFile
+import engine.graphics.TextureRegion
 import engine.graphics.asRegion
 import engine.graphics.ui.*
 import engine.graphics.ui.widgets.*
 import game.assets.AssetType
-import game.assets.TextureMetaFile
+import engine.assets.managers.TextureManager
+import engine.assets.managers.getTexture
+import engine.assets.managers.textures
+import engine.assets.remove
 import game.extensions.*
 import game.level.ui.editorStyle
 import kotlin.math.max
 import kotlin.math.min
 
-class TextureAssetType : AssetType<TextureAssetType>, Disposable {
+class TextureAssetType : AssetType<TextureRegion>, Disposable {
+    class TextureMetaFile : MetaFile() {
+        var filter by string { Texture.Filter.NEAREST.name }
+    }
+
     private enum class ImportMode {
         SINGLE,
         SPLIT
@@ -202,7 +211,7 @@ class TextureAssetType : AssetType<TextureAssetType>, Disposable {
                             images[x, y]?.let {
                                 if (!(excludeEmptyImages && it.pixels.data.all { it.data.all { it == 0.0f } })) {
                                     val imageFileName = "${nameTextData.text}_${x}_${y}.${file.extension}"
-                                    val assetFile = Game.assets.getAssetFileHandle(imageFileName)
+                                    val assetFile = Game.assets.toAssetFileHandle(imageFileName)
 
                                     if (assetFile.exists)
                                         assetFile.delete()
@@ -211,10 +220,10 @@ class TextureAssetType : AssetType<TextureAssetType>, Disposable {
 
                                     val metaFile = TextureMetaFile()
                                     metaFile.name = imageFileName
-                                    metaFile.filter = selectedFilter
+                                    metaFile.filter = selectedFilter.name
                                     metaFile.write(assetFile.sibling("${assetFile.nameWithExtension}.meta"))
 
-                                    Game.textures.add(imageFileName, it, selectedFilter)
+                                    Game.assets.textures?.add(imageFileName, it, TextureManager.TextureParams(selectedFilter))
                                 }
                             }
                         }
@@ -222,7 +231,7 @@ class TextureAssetType : AssetType<TextureAssetType>, Disposable {
                 }
                 else -> {
                     val imageFileName = "${nameTextData.text}.${file.extension}"
-                    val assetFile = Game.assets.getAssetFileHandle(imageFileName)
+                    val assetFile = Game.assets.toAssetFileHandle(imageFileName)
 
                     if (file != nameTextData.text) {
                         if (assetFile.exists)
@@ -233,10 +242,10 @@ class TextureAssetType : AssetType<TextureAssetType>, Disposable {
 
                     val metaFile = TextureMetaFile()
                     metaFile.name = imageFileName
-                    metaFile.filter = selectedFilter
+                    metaFile.filter = selectedFilter.name
                     metaFile.write(assetFile.sibling("${assetFile.nameWithExtension}.meta"))
 
-                    Game.textures.add(assetFile, imageFileName, params = selectedFilter)
+                    Game.assets.textures?.add(assetFile, imageFileName, params = TextureManager.TextureParams(selectedFilter))
                 }
             }
         }
@@ -248,29 +257,27 @@ class TextureAssetType : AssetType<TextureAssetType>, Disposable {
 
     class TextureAsset(val name: String)
 
-    override val name = AssetTypes.TEXTURES
+    override val assetType = TextureRegion::class
+
+    override val name = "Textures"
 
     override val iconName = "internal/images/assettype_texture.png"
-
-    override val supportedFormats get() = Kore.graphics.supportedImageFormats.toList()
-
-    override val assetNames get() = Game.textures.names
 
     private val imageImportPopup = ImageImportPopup()
 
     override fun preview(gui: GUI, size: Float, name: String, showMenu: Boolean) {
         if (showMenu)
             gui.elementMenu({
-                gui.image(Game.textures[name] ?: Game.graphics2d.missingTexture.asRegion(), size)
+                gui.image(Game.assets.getTexture(name), size)
             }, gui.skin.elementSize * 0.66f, arrayOf(MENUOPTION_DELETE), backgroundColor = Color.DARK_GRAY) {
                 if (it == MENUOPTION_DELETE)
-                    Game.textures.remove(name)
+                    Game.assets.remove(name)
             }
         else
-            gui.image(Game.textures[name] ?: Game.graphics2d.missingTexture.asRegion(), size)
+            gui.image(Game.assets.getTexture(name), size)
     }
 
-    override fun createDragDropData(name: String) = { DragDropData(TextureAsset(name)) { image(Game.textures[name] ?: Game.graphics2d.missingTexture.asRegion(), Game.editorStyle.assetElementWidth) } }
+    override fun createDragDropData(name: String) = { DragDropData(TextureAsset(name)) { image(Game.assets.getTexture(name), Game.editorStyle.assetElementWidth) } }
 
     override fun appendToAssetList(gui: GUI, list: MutableList<() -> GUIElement>) {
         list += {
@@ -281,22 +288,6 @@ class TextureAssetType : AssetType<TextureAssetType>, Disposable {
                 }
             }
         }
-    }
-
-    override fun load(file: FileHandle) {
-        val metaFileHandle = file.sibling("${file.nameWithExtension}.meta")
-
-        var filter = Texture.Filter.NEAREST
-
-        val name = if (metaFileHandle.exists) {
-            val metaFile = TextureMetaFile()
-            metaFile.read(metaFileHandle)
-            filter = metaFile.filter
-            metaFile.name
-        } else
-            file.fullPath
-
-        Game.textures.add(file, name, filter)
     }
 
     override fun dispose() {

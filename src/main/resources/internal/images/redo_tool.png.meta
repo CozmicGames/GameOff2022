@@ -3,7 +3,7 @@
         "type": "STRING",
         "value": "internal/images/redo_tool.png"
     },
-    "filterName": {
+    "filter": {
         "type": "STRING",
         "value": "LINEAR"
     }

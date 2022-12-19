@@ -1,12 +1,15 @@
-package game.assets.managers
+package engine.assets.managers
 
 import com.cozmicgames.Kore
 import com.cozmicgames.files.FileHandle
 import com.cozmicgames.log
 import engine.graphics.shaders.DefaultShader
 import engine.graphics.shaders.Shader
+import engine.assets.AssetManager
 
-class ShaderManager : StandardAssetTypeManager<Shader, Unit>() {
+class ShaderManager : StandardAssetTypeManager<Shader, Unit>(Shader::class) {
+    override val supportedFormats = setOf("shader")
+
     override val defaultParams = Unit
 
     override val defaultValue = DefaultShader
@@ -31,3 +34,7 @@ class ShaderManager : StandardAssetTypeManager<Shader, Unit>() {
         add(name, shader, file)
     }
 }
+
+val AssetManager.shaders get() = getAssetTypeManager<Shader>() as? ShaderManager
+
+fun AssetManager.getShader(name: String) = getAsset(name, Shader::class)

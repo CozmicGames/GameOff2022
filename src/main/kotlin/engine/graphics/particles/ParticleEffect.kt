@@ -8,13 +8,14 @@ import engine.graphics.asRegion
 import engine.graphics.drawRect
 import engine.graphics.particles.data.*
 import engine.graphics.shaders.ParticleShader
+import engine.assets.managers.shaders
 import kotlin.math.floor
 import kotlin.math.min
 
 class ParticleEffect(maxParticles: Int, var emitRate: Float) {
     companion object {
         init {
-            Game.shaders.add("particle", ParticleShader)
+            Game.assets.shaders?.add("particle", ParticleShader)
         }
     }
 

@@ -1,12 +1,15 @@
-package game.assets.managers
+package engine.assets.managers
 
 import com.cozmicgames.Kore
 import com.cozmicgames.files.FileHandle
 import com.cozmicgames.graphics
 import com.cozmicgames.graphics.Font
 import com.cozmicgames.log
+import engine.assets.AssetManager
 
-class FontManager : StandardAssetTypeManager<Font, Unit>() {
+class FontManager : StandardAssetTypeManager<Font, Unit>(Font::class) {
+    override val supportedFormats = Kore.graphics.supportedFontFormats.toSet()
+
     override val defaultParams = Unit
 
     override fun add(file: FileHandle, name: String, params: Unit) {
@@ -25,3 +28,7 @@ class FontManager : StandardAssetTypeManager<Font, Unit>() {
         add(name, font)
     }
 }
+
+val AssetManager.fonts get() = getAssetTypeManager<Font>() as? FontManager
+
+fun AssetManager.getFont(name: String) = getAsset(name, Font::class)

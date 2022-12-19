@@ -1,26 +1,30 @@
 package game.level.ui
 
 import engine.Game
-import engine.graphics.asRegion
+import engine.assets.getAssetNames
 import engine.graphics.ui.*
 import engine.graphics.ui.widgets.*
+import engine.assets.managers.getTexture
+import game.assets.assetTypes
 import game.assets.findAssetType
 import game.extensions.multilineListWithSameElementWidths
 
 fun GUI.assetSelector(data: AssetSelectorData, width: Float, height: Float): GUIElement {
-    val filteredAssetTypes = Game.assets.assetTypes.filter(data.filter)
+    val filteredAssetTypes = Game.assetTypes.types.filter {
+        it.assetType in data.filter
+    }
 
     return panel(width, height, data.elementsScroll, Game.editorStyle.panelContentBackgroundColor, Game.editorStyle.panelTitleBackgroundColor, {
         val assetTypeSelector = {
             sameLine {
                 if (filteredAssetTypes.size == 1) {
                     val type = filteredAssetTypes.first()
-                    imageLabel(type.name, Game.textures[type.iconName])
-                    data.currentAssetType = type.name
+                    imageLabel(type.name, Game.assets.getTexture(type.iconName))
+                    data.currentAssetType = type.assetType
                 } else
                     filteredAssetTypes.forEach {
-                        selectableText(it.name, Game.textures[it.iconName], data.currentAssetType == it.name) {
-                            data.currentAssetType = it.name
+                        selectableText(it.name, Game.assets.getTexture(it.iconName), data.currentAssetType == it.assetType) {
+                            data.currentAssetType = it.assetType
                             data.elementsScroll.setZero()
                         }
                         spacing(skin.elementPadding)
@@ -30,7 +34,7 @@ fun GUI.assetSelector(data: AssetSelectorData, width: Float, height: Float): GUI
 
         val filterText = {
             sameLine {
-                image(Game.textures["internal/images/search.png"] ?: Game.graphics2d.missingTexture.asRegion(), borderThickness = 0.0f)
+                image(Game.assets.getTexture("internal/images/search.png"), borderThickness = 0.0f)
                 textField(data.filterTextData, skin.elementSize * 6.0f)
             }
         }
@@ -51,10 +55,10 @@ fun GUI.assetSelector(data: AssetSelectorData, width: Float, height: Float): GUI
         val currentAssetType = data.currentAssetType
 
         if (currentAssetType != null) {
-            val assetType = Game.assets.findAssetType(currentAssetType)
+            val type = Game.assetTypes.findAssetType(currentAssetType)
 
-            if (assetType != null) {
-                val elements = assetType.assetNames.filter {
+            if (type != null) {
+                val elements = Game.assets.getAssetNames(type.assetType).filter {
                     if (data.showInternalAssetElements || !it.startsWith("internal")) {
                         if (data.filterTextData.text.isNotBlank())
                             data.filterTextData.text in it
@@ -64,16 +68,16 @@ fun GUI.assetSelector(data: AssetSelectorData, width: Float, height: Float): GUI
                         false
                 }.mapTo(arrayListOf()) {
                     {
-                        draggable(assetType.createDragDropData(it)) {
+                        draggable(type.createDragDropData(it)) {
                             group {
-                                assetType.preview(this, Game.editorStyle.assetElementWidth, it, data.showEditIcons)
+                                type.preview(this, Game.editorStyle.assetElementWidth, it, data.showEditIcons)
                                 tooltip(label(it, backgroundColor = null, maxWidth = Game.editorStyle.assetElementWidth), it)
                             }
                         }
                     }
                 }
 
-                assetType.appendToAssetList(this, elements)
+                type.appendToAssetList(this, elements)
 
                 multilineListWithSameElementWidths(width - skin.scrollbarSize, Game.editorStyle.assetElementWidth, Game.editorStyle.assetElementMinPadding) {
                     elements.removeFirstOrNull()

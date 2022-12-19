@@ -6,6 +6,8 @@ import com.cozmicgames.utils.collections.Pool
 import com.cozmicgames.utils.maths.OrthographicCamera
 import engine.Game
 import engine.graphics.shaders.DefaultShader
+import engine.assets.managers.getMaterial
+import engine.assets.managers.getShader
 
 class RenderManager : Disposable {
     private class RenderList(val layer: Int) : Iterable<Renderable> {
@@ -31,7 +33,7 @@ class RenderManager : Disposable {
     fun submit(drawable: Drawable, flipX: Boolean, flipY: Boolean) {
         val renderable = drawableRenderablePool.obtain()
         renderable.drawable = drawable
-        renderable.material = drawable.material?.let { Game.materials[it] } ?: Game.graphics2d.missingMaterial
+        renderable.material = drawable.material?.let { Game.assets.getMaterial(it) } ?: Game.graphics2d.missingMaterial
         renderable.layer = drawable.layer
         renderable.flipX = flipX
         renderable.flipY = flipY
@@ -83,7 +85,7 @@ class RenderManager : Disposable {
                         is DrawableRenderable -> batchBuilder.submit(renderable.material, renderable.drawable, renderable.flipX, renderable.flipY)
                         is DirectRenderable -> {
                             renderer.withTransientState {
-                                shader = Game.shaders[renderable.shader] ?: DefaultShader
+                                shader = Game.assets.getShader(renderable.shader) ?: DefaultShader
                                 texture = renderable.texture
                                 flipX = renderable.flipX
                                 flipY = renderable.flipY

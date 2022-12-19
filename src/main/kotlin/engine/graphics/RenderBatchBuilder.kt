@@ -3,6 +3,7 @@ package engine.graphics
 import com.cozmicgames.utils.Disposable
 import com.cozmicgames.utils.collections.Pool
 import engine.Game
+import engine.assets.managers.getTexture
 
 class RenderBatchBuilder : Disposable {
     private val drawBatchPool = Pool(supplier = { RenderBatch() })
@@ -19,7 +20,7 @@ class RenderBatchBuilder : Disposable {
             batches += batch
         }
 
-        val region = Game.textures[material.colorTexturePath] ?: Game.graphics2d.missingTexture.asRegion()
+        val region = Game.assets.getTexture(material.colorTexturePath)
         batch.context.drawDrawable(drawable, region.u0, region.v0, region.u1, region.v1, material.color)
     }
 

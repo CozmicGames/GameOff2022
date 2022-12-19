@@ -3,7 +3,7 @@
         "type": "STRING",
         "value": "internal/images/grid_background_8x8.png"
     },
-    "filterName": {
+    "filter": {
         "type": "STRING",
         "value": "NEAREST"
     }

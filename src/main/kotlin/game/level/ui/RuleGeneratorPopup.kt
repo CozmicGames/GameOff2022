@@ -8,11 +8,16 @@ import com.cozmicgames.graphics.gpu.Texture
 import com.cozmicgames.utils.extensions.extension
 import com.cozmicgames.utils.extensions.pathWithoutExtension
 import engine.Game
-import engine.graphics.asRegion
+import engine.graphics.TextureRegion
 import engine.graphics.font.HAlign
 import engine.graphics.ui.*
 import engine.graphics.ui.widgets.*
-import game.assets.TextureMetaFile
+import engine.assets.getAssetFileHandle
+import engine.assets.managers.TextureManager
+import engine.assets.managers.getMaterial
+import engine.assets.managers.getTexture
+import engine.assets.managers.getTextureFilter
+import game.assets.types.TextureAssetType
 import game.extensions.materialPreview
 import game.level.TileSet
 import kotlin.math.min
@@ -37,10 +42,10 @@ class RuleGeneratorPopup : GUIPopup() {
         bottomSlice = 1.0f / 3.0f
 
         tileSet[tileTypeName]?.let { tileType ->
-            Game.materials[tileType.defaultMaterial]?.let { material ->
+            Game.assets.getMaterial(tileType.defaultMaterial)?.let { material ->
                 imageFileName = material.colorTexturePath
                 nameTextData.setText(material.colorTexturePath.pathWithoutExtension)
-                filterComboboxData.selectedIndex = Game.textures.getFilter(material.colorTexturePath)?.ordinal ?: 0
+                filterComboboxData.selectedIndex = Game.assets.getTextureFilter(material.colorTexturePath)?.ordinal ?: 0
             }
         }
     }
@@ -62,7 +67,7 @@ class RuleGeneratorPopup : GUIPopup() {
                             val selectedFilter = filterComboboxData.selectedItem ?: Texture.Filter.NEAREST
 
                             imageFileName?.let { imageFileName ->
-                                Game.textures.getFileHandle(imageFileName)?.let {
+                                Game.assets.getAssetFileHandle(imageFileName)?.let {
                                     Kore.graphics.readImage(it)?.let { image ->
                                         val leftWidth = (image.width * leftSlice).toInt()
                                         val rightWidth = (image.width * rightSlice).toInt()
@@ -94,11 +99,11 @@ class RuleGeneratorPopup : GUIPopup() {
                                             variantImage.setImage(bottomRight, variantImage.width / 2, variantImage.height / 2)
 
                                             val variantImageFileName = "${nameTextData.text}.${variant++}.${imageFileName.extension}"
-                                            val assetFile = Game.assets.getAssetFileHandle(variantImageFileName)
+                                            val assetFile = Game.assets.toAssetFileHandle(variantImageFileName)
 
                                             tileSet[tileTypeName]?.let {
                                                 val rule = it.addRule()
-                                                Game.materials[rule.material]?.colorTexturePath = variantImageFileName
+                                                Game.assets.getMaterial(rule.material)?.colorTexturePath = variantImageFileName
 
                                                 rule.dependencyTopCenter = if (sameTileTop) TileSet.TileType.TileTypeDependency(tileTypeName) else TileSet.TileType.ExclusiveTileTypeDependency(tileTypeName)
                                                 rule.dependencyCenterRight = if (sameTileRight) TileSet.TileType.TileTypeDependency(tileTypeName) else TileSet.TileType.ExclusiveTileTypeDependency(tileTypeName)
@@ -111,12 +116,12 @@ class RuleGeneratorPopup : GUIPopup() {
 
                                             Kore.graphics.writeImage(assetFile, variantImage)
 
-                                            val metaFile = TextureMetaFile()
+                                            val metaFile = TextureAssetType.TextureMetaFile()
                                             metaFile.name = variantImageFileName
-                                            metaFile.filter = selectedFilter
+                                            metaFile.filter = selectedFilter.name
                                             metaFile.write(assetFile.sibling("${assetFile.nameWithExtension}.meta"))
 
-                                            Game.textures.add(variantImageFileName, variantImage, selectedFilter, assetFile)
+                                            (Game.assets.getAssetTypeManager<TextureRegion>() as? TextureManager)?.add(variantImageFileName, variantImage, TextureManager.TextureParams(selectedFilter), assetFile)
                                         }
 
                                         addVariant(sliceTopLeft, sliceTopRight, sliceBottomLeft, sliceBottomRight, false, false, false, false)
@@ -153,13 +158,13 @@ class RuleGeneratorPopup : GUIPopup() {
                     val previewOffset = (width - previewSize) * 0.5f
 
                     tileSet[tileTypeName]?.let {
-                        Game.materials[it.defaultMaterial]?.let {
+                        Game.assets.getMaterial(it.defaultMaterial)?.let {
                             gui.offset(previewOffset, 0.0f, resetX = true) {
                                 val (linesX, linesY) = gui.getLastElement()
 
                                 gui.materialPreview(it, previewSize)
 
-                                val region = Game.textures[it.colorTexturePath] ?: Game.graphics2d.missingTexture.asRegion()
+                                val region = Game.assets.getTexture(it.colorTexturePath)
 
                                 val pixelSizeX = previewSize / region.width
                                 val pixelSizeY = previewSize / region.height

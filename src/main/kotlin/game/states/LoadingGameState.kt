@@ -11,10 +11,10 @@ import com.cozmicgames.utils.durationOf
 import com.cozmicgames.utils.extensions.extension
 import engine.Game
 import engine.GameState
-import engine.graphics.asRegion
 import engine.graphics.ui.GUI
 import engine.graphics.ui.widgets.label
 import game.Version
+import engine.assets.managers.getTexture
 import kotlin.math.min
 
 class LoadingGameState : GameState {
@@ -33,7 +33,7 @@ class LoadingGameState : GameState {
     override fun onCreate() {
 
         val supportedAssetFormats = arrayListOf<String>()
-        Game.assets.assetTypes.forEach {
+        Game.assets.managers.forEach {
             supportedAssetFormats.addAll(it.supportedFormats)
         }
 
@@ -59,7 +59,7 @@ class LoadingGameState : GameState {
         searchDirectory(Kore.files.asset("internal"))
         searchDirectory(Kore.files.local("assets"))
 
-        Game.textures.add(Kore.files.asset("internal/icons/icon.png"))
+        Game.assets.load(Kore.files.asset("internal/icons/icon.png"))
 
         totalTasks = loadingTasks.size
     }
@@ -91,7 +91,7 @@ class LoadingGameState : GameState {
         val progress = loadedTasks.toFloat() / totalTasks
 
         Game.graphics2d.render {
-            it.draw(Game.textures[Kore.files.asset("internal/icons/icon.png")] ?: Game.graphics2d.missingTexture.asRegion(), iconX, iconY, iconSize, iconSize)
+            it.draw(Game.assets.getTexture("internal/icons/icon.png"), iconX, iconY, iconSize, iconSize)
             it.drawRect(progressX, progressY, progressWidth, progressHeight, Color.GRAY)
             it.drawRect(progressX, progressY, progressWidth * progress, progressHeight, Color.RED)
         }

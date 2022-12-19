@@ -1,4 +1,4 @@
-package game.assets.managers
+package engine.assets.managers
 
 import com.cozmicgames.Kore
 import com.cozmicgames.files.FileHandle
@@ -7,22 +7,38 @@ import com.cozmicgames.graphics
 import com.cozmicgames.graphics.Image
 import com.cozmicgames.graphics.gpu.Texture
 import com.cozmicgames.log
+import com.cozmicgames.utils.extensions.enumValueOfOrDefault
 import engine.Game
 import engine.graphics.TextureAtlas
 import engine.graphics.TextureRegion
-import game.assets.AssetTypeManager
+import engine.graphics.asRegion
+import engine.assets.AssetManager
+import engine.assets.AssetTypeManager
+import engine.assets.MetaFile
 
-class TextureManager : AssetTypeManager<TextureRegion, Texture.Filter>() {
-    override val defaultParams = Texture.Filter.NEAREST
+class TextureManager : AssetTypeManager<TextureRegion, TextureManager.TextureParams>(TextureRegion::class) {
+    data class TextureParams(var filter: Texture.Filter = Texture.Filter.NEAREST)
 
-    class Entry(val filter: Texture.Filter, val file: FileHandle?)
+    override val supportedFormats = Kore.graphics.supportedImageFormats.toSet()
 
-    private val textures = hashMapOf<Texture.Filter, TextureAtlas>()
+    override val defaultParams = TextureParams()
+
+    class Entry(val params: TextureParams, val file: FileHandle?)
+
+    private val textures = hashMapOf<TextureParams, TextureAtlas>()
     private val entries = hashMapOf<String, Entry>()
 
-    val names get() = entries.keys.toList()
+    override val names get() = entries.keys
 
-    override fun add(file: FileHandle, name: String, params: Texture.Filter) {
+    override fun getParams(metaFile: MetaFile): TextureParams {
+        val filter = metaFile.getString("filter")?.let {
+            enumValueOfOrDefault(it) { Texture.Filter.NEAREST }
+        } ?: Texture.Filter.NEAREST
+
+        return TextureParams(filter)
+    }
+
+    override fun add(file: FileHandle, name: String, params: TextureParams) {
         val image = if (file.exists)
             Kore.graphics.readImage(file)
         else {
@@ -38,15 +54,15 @@ class TextureManager : AssetTypeManager<TextureRegion, Texture.Filter>() {
         add(name, image, params, file)
     }
 
-    fun add(name: String, image: Image, filter: Texture.Filter, file: FileHandle? = null) {
-        val atlas = getAtlas(filter)
+    fun add(name: String, image: Image, params: TextureParams, file: FileHandle? = null) {
+        val atlas = getAtlas(params)
         atlas.add(name to image)
-        entries[name] = Entry(filter, file)
+        entries[name] = Entry(params, file)
     }
 
-    fun getAtlas(filter: Texture.Filter): TextureAtlas {
-        return textures.getOrPut(filter) {
-            when (filter) {
+    fun getAtlas(params: TextureParams): TextureAtlas {
+        return textures.getOrPut(params) {
+            when (params.filter) {
                 Texture.Filter.NEAREST -> TextureAtlas(sampler = Game.graphics2d.pointClampSampler)
                 Texture.Filter.LINEAR -> TextureAtlas(sampler = Game.graphics2d.linearClampSampler)
             }
@@ -57,14 +73,14 @@ class TextureManager : AssetTypeManager<TextureRegion, Texture.Filter>() {
 
     override fun get(name: String): TextureRegion? {
         val entry = entries[name] ?: return null
-        val atlas = getAtlas(entry.filter)
+        val atlas = getAtlas(entry.params)
         return atlas[name]
     }
 
-    override fun remove(name: String) {
-        val entry = entries.remove(name) ?: return
+    override fun remove(name: String): Boolean {
+        val entry = entries.remove(name) ?: return false
 
-        val atlas = getAtlas(entry.filter)
+        val atlas = getAtlas(entry.params)
         atlas.remove(name)
 
         val file = entry.file
@@ -77,6 +93,8 @@ class TextureManager : AssetTypeManager<TextureRegion, Texture.Filter>() {
             if (metaFile.exists && metaFile.isWritable)
                 metaFile.delete()
         }
+
+        return true
     }
 
     override fun getFileHandle(name: String): FileHandle? {
@@ -86,7 +104,7 @@ class TextureManager : AssetTypeManager<TextureRegion, Texture.Filter>() {
 
     fun getFilter(name: String): Texture.Filter? {
         val entry = entries[name] ?: return null
-        return entry.filter
+        return entry.params.filter
     }
 
     override fun dispose() {
@@ -95,3 +113,9 @@ class TextureManager : AssetTypeManager<TextureRegion, Texture.Filter>() {
         }
     }
 }
+
+val AssetManager.textures get() = getAssetTypeManager<TextureRegion>() as? TextureManager
+
+fun AssetManager.getTexture(name: String) = getAsset(name, TextureRegion::class) ?: Game.graphics2d.missingTexture.asRegion()
+
+fun AssetManager.getTextureFilter(name: String) = textures?.getFilter(name)

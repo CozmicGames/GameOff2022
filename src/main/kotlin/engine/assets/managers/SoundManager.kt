@@ -1,12 +1,15 @@
-package game.assets.managers
+package engine.assets.managers
 
 import com.cozmicgames.Kore
 import com.cozmicgames.audio
 import com.cozmicgames.audio.Sound
 import com.cozmicgames.files.FileHandle
 import com.cozmicgames.log
+import engine.assets.AssetManager
 
-class SoundManager : StandardAssetTypeManager<Sound, Unit>() {
+class SoundManager : StandardAssetTypeManager<Sound, Unit>(Sound::class) {
+    override val supportedFormats = Kore.audio.supportedSoundFormats.toSet()
+
     override val defaultParams = Unit
 
     override fun add(file: FileHandle, name: String, params: Unit) {
@@ -25,3 +28,7 @@ class SoundManager : StandardAssetTypeManager<Sound, Unit>() {
         add(name, sound, file)
     }
 }
+
+val AssetManager.sounds get() = getAssetTypeManager<Sound>() as? SoundManager
+
+fun AssetManager.getSound(name: String) = getAsset(name, Sound::class)

@@ -10,7 +10,7 @@ import engine.graphics.ui.GUIElement
 import engine.graphics.ui.GUIPopup
 import engine.graphics.ui.TextData
 import engine.graphics.ui.widgets.*
-import game.assets.MetaFile
+import engine.assets.MetaFile
 import game.level.ui.editorStyle
 
 class CreateFilePopup(val extension: String) : GUIPopup() {

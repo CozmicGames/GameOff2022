@@ -7,6 +7,9 @@ import com.cozmicgames.utils.extensions.enumValueOfOrNull
 import com.cozmicgames.utils.extensions.pathWithoutExtension
 import engine.Game
 import engine.graphics.Material
+import engine.assets.managers.getMaterial
+import engine.assets.managers.materials
+import engine.assets.remove
 import game.components.GridComponent
 import game.components.getCellType
 
@@ -16,7 +19,7 @@ class TileSet(val name: String) : Disposable {
             val name = "${tileSetName.pathWithoutExtension}/${UUID.randomUUID()}.material"
             val material = Material()
             material.colorTexturePath = "internal/images/empty_tiletype.png"
-            Game.materials.add(name, material)
+            Game.assets.materials?.add(name, material)
             return name
         }
     }
@@ -66,7 +69,7 @@ class TileSet(val name: String) : Disposable {
                 dependencyBottomRight = null
 
                 properties.getProperties("material")?.let {
-                    val material = Game.materials[this.material]
+                    val material = Game.assets.getMaterial(this.material)
                     material?.clear()
                     material?.set(it)
                 }
@@ -102,7 +105,7 @@ class TileSet(val name: String) : Disposable {
             }
 
             fun write(properties: Properties) {
-                properties.setProperties("material", Game.materials[material] ?: Material().also {
+                properties.setProperties("material", Game.assets.getMaterial(material) ?: Material().also {
                     it.colorTexturePath = "assets/internal/images/empty_tiletype.png"
                 })
 
@@ -129,7 +132,7 @@ class TileSet(val name: String) : Disposable {
             }
 
             override fun dispose() {
-                Game.materials.remove(material)
+                Game.assets.remove(material)
             }
         }
 
@@ -222,7 +225,7 @@ class TileSet(val name: String) : Disposable {
             rulesInternal.clear()
 
             properties.getProperties("defaultMaterial")?.let {
-                val material = Game.materials[defaultMaterial]
+                val material = Game.assets.getMaterial(defaultMaterial)
                 material?.clear()
                 material?.set(it)
             }
@@ -244,7 +247,7 @@ class TileSet(val name: String) : Disposable {
                 rulesProperties += ruleProperties
             }
 
-            properties.setProperties("defaultMaterial", Game.materials[defaultMaterial] ?: (Material().also {
+            properties.setProperties("defaultMaterial", Game.assets.getMaterial(defaultMaterial) ?: (Material().also {
                 it.colorTexturePath = "internal/images/empty_tiletype.png"
             }))
 
@@ -252,7 +255,7 @@ class TileSet(val name: String) : Disposable {
         }
 
         override fun dispose() {
-            Game.materials.remove(defaultMaterial)
+            Game.assets.remove(defaultMaterial)
 
             rulesInternal.forEach {
                 it.dispose()
@@ -301,8 +304,8 @@ class TileSet(val name: String) : Disposable {
                 type.rules.forEach {
                     val rule = dest.addRule()
 
-                    Game.materials[it.material]?.let {
-                        Game.materials[rule.material]?.set(it)
+                    Game.assets.getMaterial(it.material)?.let {
+                        Game.assets.getMaterial(rule.material)?.set(it)
                     }
 
                     fun copyDependency(src: TileType.Dependency?) = when (src?.type) {

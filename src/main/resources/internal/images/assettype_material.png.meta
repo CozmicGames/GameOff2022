@@ -3,7 +3,7 @@
         "type": "STRING",
         "value": "internal/images/assettype_material.png"
     },
-    "filterName": {
+    "filter": {
         "type": "STRING",
         "value": "LINEAR"
     }

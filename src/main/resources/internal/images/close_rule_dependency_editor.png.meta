@@ -3,7 +3,7 @@
         "type": "STRING",
         "value": "internal/images/close_rule_dependency_editor.png"
     },
-    "filterName": {
+    "filter": {
         "type": "STRING",
         "value": "LINEAR"
     }
